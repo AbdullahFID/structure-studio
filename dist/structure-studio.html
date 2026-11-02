@@ -1,0 +1,3263 @@
+<title>Structure Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
+<style>
+/* Layout: agent chat column on the left, drafting-table viewer on the right.
+   Quiet chrome everywhere; the one loud place is the 3D frame with its blueprint-blue gridlines. */
+:root {
+  --bg: #e6eae8;
+  --panel: #f6f8f7;
+  --raised: #ffffff;
+  --sunk: #edf0ef;
+  --ink: #15191b;
+  --ink-2: #4a5357;
+  --ink-3: #78828a;
+  --line: #d2d8d5;
+  --line-2: #e1e6e3;
+  --accent: #1f4f94;
+  --accent-hover: #183f78;
+  --accent-ink: #ffffff;
+  --accent-soft: #dfe7f3;
+  --timber: #b8783a;
+  --concrete: #7d868c;
+  --steel: #ad4c36;
+  --tile-ink: #ffffff;
+  --good: #23704a;
+  --good-soft: #ddefe4;
+  --warn: #8f5c0c;
+  --warn-soft: #f5ead5;
+  --bad: #b3261e;
+  --viewer-top: #f3f5f4;
+  --viewer-bottom: #dce2df;
+  --grid-minor: #a3aca8;
+  --grid-major: #75817c;
+  --gridline: #1f4f94;
+  --glass: rgb(248 250 249 / 0.78);
+  --glass-line: rgb(255 255 255 / 0.7);
+  --glass-edge: rgb(30 40 45 / 0.10);
+  --shadow: 0 12px 32px -16px rgb(20 32 40 / 0.32), 0 2px 6px -2px rgb(20 32 40 / 0.08);
+  --shadow-lg: 0 24px 60px -20px rgb(20 32 40 / 0.38);
+  --scrim: rgb(20 26 30 / 0.28);
+  --is-dark: 0;
+  --font: 'Archivo', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --r-sm: 7px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1214; --panel: #161a1d; --raised: #1d2226; --sunk: #121619;
+    --ink: #e5eaec; --ink-2: #a6afb4; --ink-3: #727c82; --line: #2a3135; --line-2: #212629;
+    --accent: #8fb2f0; --accent-hover: #abc6f6; --accent-ink: #0c182b; --accent-soft: #1a2940;
+    --timber: #d69b5a; --concrete: #a1a9af; --steel: #db765d; --tile-ink: #101315;
+    --good: #72c697; --good-soft: #15291d; --warn: #e2b264; --warn-soft: #2e230f; --bad: #ff8a80;
+    --viewer-top: #1c2125; --viewer-bottom: #101315;
+    --grid-minor: #3a4448; --grid-major: #55636a; --gridline: #8fb2f0;
+    --glass: rgb(26 31 35 / 0.78); --glass-line: rgb(255 255 255 / 0.06); --glass-edge: rgb(0 0 0 / 0.45);
+    --shadow: 0 14px 36px -16px rgb(0 0 0 / 0.75), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 28px 70px -20px rgb(0 0 0 / 0.8);
+    --scrim: rgb(0 0 0 / 0.5);
+    --is-dark: 1;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1214; --panel: #161a1d; --raised: #1d2226; --sunk: #121619;
+  --ink: #e5eaec; --ink-2: #a6afb4; --ink-3: #727c82; --line: #2a3135; --line-2: #212629;
+  --accent: #8fb2f0; --accent-hover: #abc6f6; --accent-ink: #0c182b; --accent-soft: #1a2940;
+  --timber: #d69b5a; --concrete: #a1a9af; --steel: #db765d; --tile-ink: #101315;
+  --good: #72c697; --good-soft: #15291d; --warn: #e2b264; --warn-soft: #2e230f; --bad: #ff8a80;
+  --viewer-top: #1c2125; --viewer-bottom: #101315;
+  --grid-minor: #3a4448; --grid-major: #55636a; --gridline: #8fb2f0;
+  --glass: rgb(26 31 35 / 0.78); --glass-line: rgb(255 255 255 / 0.06); --glass-edge: rgb(0 0 0 / 0.45);
+  --shadow: 0 14px 36px -16px rgb(0 0 0 / 0.75), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 28px 70px -20px rgb(0 0 0 / 0.8);
+  --scrim: rgb(0 0 0 / 0.5);
+  --is-dark: 1;
+  color-scheme: dark;
+}
+
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 13.5px/1.45 var(--font);
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+#app { height: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.ic { flex: none; display: block; }
+h2, h3 { text-wrap: balance; margin: 0; }
+p { margin: 0; }
+
+/* ------------------------------------------------------------ shell --- */
+.app { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.topbar {
+  display: flex; align-items: center; gap: 10px; min-height: 52px;
+  padding-inline: 16px 12px;
+  background: var(--panel); border-bottom: 1px solid var(--line);
+  position: relative; z-index: 20;
+}
+.brand { display: flex; align-items: center; gap: 9px; color: var(--ink); flex: none; }
+.brand-mark { color: var(--accent); }
+.brand-name { font-weight: 640; font-stretch: 108%; font-size: 15px; letter-spacing: -0.01em; }
+.crumb-sep { color: var(--line); font-size: 20px; font-weight: 300; }
+.project { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+.project input {
+  min-width: 0; width: min(280px, 100%); border: 1px solid transparent; background: transparent;
+  padding: 5px 8px; border-radius: var(--r-sm); font-weight: 500; color: var(--ink-2);
+  text-overflow: ellipsis;
+}
+.project input:hover { background: var(--sunk); }
+.project input:focus { outline: none; border-color: var(--accent); background: var(--raised); color: var(--ink); }
+.topbar-right { display: flex; align-items: center; gap: 6px; margin-left: auto; flex: none; }
+.walk-wrap { position: relative; }
+.mobile-switch { display: none; }
+.main { display: grid; grid-template-columns: minmax(330px, 400px) minmax(0, 1fr); min-height: 0; }
+
+/* ----------------------------------------------------------- buttons --- */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px; border-radius: var(--r-md);
+  padding: 8px 14px; border: 1px solid transparent; font-weight: 560; line-height: 1.1;
+  transition: background .15s var(--ease), border-color .15s, color .15s, transform .12s;
+}
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn--sm { padding: 6px 10px; font-size: 13px; }
+.btn--primary { background: var(--accent); color: var(--accent-ink); }
+.btn--primary:hover:not(:disabled) { background: var(--accent-hover); }
+.btn--primary:disabled { opacity: .5; }
+.btn--secondary { background: var(--raised); border-color: var(--line); color: var(--ink); }
+.btn--secondary:hover { border-color: var(--ink-3); }
+.btn--ghost { background: transparent; color: var(--ink-2); }
+.btn--ghost:hover:not(:disabled), .btn--ghost.is-on { background: var(--sunk); color: var(--ink); }
+.btn--ghost:disabled { opacity: .45; }
+.icon-btn {
+  display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: var(--r-md);
+  border: 0; background: transparent; color: var(--ink-2);
+}
+.icon-btn:hover { background: var(--sunk); color: var(--ink); }
+.icon-btn--sm { width: 28px; height: 28px; }
+.linkish { border: 0; background: none; padding: 0; color: var(--accent); font-weight: 560; text-decoration: underline; text-decoration-color: color-mix(in oklab, var(--accent) 35%, transparent); text-underline-offset: 3px; }
+.linkish:hover { text-decoration-color: var(--accent); }
+.pill { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 3px 9px; font-size: 12px; font-weight: 560; white-space: nowrap; }
+.pill--outline { border: 1px solid var(--line); color: var(--ink-3); }
+.pill--tiny { padding: 1px 7px; font-size: 11px; }
+.pill--good { background: var(--good-soft); color: var(--good); }
+.pill--warn { background: var(--warn-soft); color: var(--warn); }
+.hint { color: var(--ink-3); font-size: 12.5px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; display: inline-block; }
+.is-timber.dot, .dot.is-timber { background: var(--timber); }
+.dot.is-concrete { background: var(--concrete); }
+.dot.is-steel { background: var(--steel); }
+.mat-tile {
+  display: inline-grid; place-items: center; flex: none; color: var(--tile-ink);
+  font-weight: 700; font-stretch: 90%; border-radius: 6px; width: 24px; height: 24px; font-size: 12.5px;
+}
+.mat-tile--sm { width: 20px; height: 20px; font-size: 11px; border-radius: 5px; }
+.mat-tile.is-timber { background: var(--timber); }
+.mat-tile.is-concrete { background: var(--concrete); }
+.mat-tile.is-steel { background: var(--steel); }
+.select {
+  appearance: none; border: 1px solid var(--line); background: var(--raised) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2378828a' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 9px center;
+  border-radius: var(--r-sm); padding: 6px 28px 6px 10px; font-weight: 500;
+}
+.select--sm { padding: 4px 26px 4px 8px; font-size: 12.5px; }
+.seg { display: inline-flex; padding: 2px; border-radius: var(--r-md); background: var(--sunk); border: 1px solid var(--line-2); gap: 2px; }
+.seg-btn {
+  display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; color: var(--ink-2);
+  padding: 5px 10px; border-radius: 8px; font-weight: 560; font-size: 13px; white-space: nowrap;
+  transition: background .15s var(--ease), color .15s, box-shadow .15s;
+}
+.seg-btn:hover:not(:disabled) { color: var(--ink); }
+.seg-btn.is-on { background: var(--raised); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .12), 0 0 0 1px var(--line-2); }
+.seg-btn:disabled { opacity: .5; }
+.seg--sm .seg-btn { padding: 3px 9px; font-size: 12.5px; }
+.chip {
+  border: 1px solid var(--line); background: var(--raised); color: var(--ink-2); border-radius: 999px;
+  padding: 6px 12px; font-size: 13px; font-weight: 500; text-align: left;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip--sm { padding: 4px 10px; font-size: 12.5px; white-space: nowrap; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid color-mix(in oklab, var(--accent) 22%, transparent); border-top-color: var(--accent); animation: spin .8s linear infinite; flex: none; display: inline-block; }
+.spin--sm { width: 12px; height: 12px; border-width: 1.75px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.glass {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+  backdrop-filter: blur(18px) saturate(1.35);
+  border: 1px solid var(--glass-edge);
+  box-shadow: inset 0 1px 0 var(--glass-line), var(--shadow);
+}
+
+/* -------------------------------------------------------------- chat --- */
+.chat { display: flex; flex-direction: column; min-height: 0; background: var(--panel); border-right: 1px solid var(--line); }
+.chat-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px 10px; border-bottom: 1px solid var(--line-2); }
+.chat-title { display: flex; align-items: baseline; gap: 8px; font-weight: 620; min-width: 0; }
+.chat-sub { color: var(--ink-3); font-weight: 400; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); align-self: center; box-shadow: 0 0 0 3px var(--good-soft); }
+.status-dot.is-busy { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .45; } }
+.chat-list { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 16px 16px 8px; display: flex; flex-direction: column; gap: 14px; scrollbar-width: thin; }
+.msg { display: flex; gap: 10px; align-items: flex-start; min-width: 0; }
+.msg-body { min-width: 0; flex: 1; }
+.msg--user { justify-content: flex-end; }
+.msg--user .msg-body { flex: 0 1 auto; max-width: 86%; }
+.bubble { background: var(--accent); color: var(--accent-ink); padding: 9px 13px; border-radius: 16px 16px 5px 16px; line-height: 1.42; overflow-wrap: anywhere; }
+.avatar { flex: none; width: 26px; height: 26px; margin-top: -1px; }
+.avatar .brand-mark { width: 26px; height: 26px; }
+.msg--note { justify-content: center; }
+.note { color: var(--ink-3); font-size: 12.5px; text-align: center; padding: 2px 8px; }
+.agent-text { line-height: 1.5; color: var(--ink); overflow-wrap: anywhere; }
+.agent-text p + p { margin-top: 4px; }
+.agent-text strong { font-weight: 640; }
+.welcome { padding: 8px 2px 4px; }
+.welcome h2 { font-size: 22px; font-weight: 650; font-stretch: 106%; letter-spacing: -0.015em; line-height: 1.15; }
+.welcome > p { color: var(--ink-2); margin-top: 8px; max-width: 46ch; }
+.welcome-list { display: grid; gap: 8px; margin-top: 16px; }
+.example {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left;
+  border: 1px solid var(--line); background: var(--raised); border-radius: var(--r-lg); padding: 11px 13px; color: var(--ink);
+  transition: border-color .15s, transform .15s var(--ease), box-shadow .15s;
+}
+.example .ic { color: var(--ink-3); transform: rotate(90deg); transition: color .15s, transform .2s var(--ease); }
+.example:hover { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.example:hover .ic { color: var(--accent); transform: rotate(90deg) translateY(-2px); }
+
+/* trace */
+.trace { border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--raised); overflow: hidden; }
+.trace.is-running { border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); box-shadow: 0 0 0 3px var(--accent-soft); }
+.trace-head { width: 100%; display: flex; align-items: center; gap: 9px; border: 0; background: transparent; padding: 9px 12px; text-align: left; }
+.trace-state { width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; color: var(--good); background: var(--good-soft); flex: none; }
+.is-running .trace-state { background: transparent; }
+.trace-title { font-weight: 600; flex: 1; min-width: 0; }
+.trace-meta { color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.trace-chev { color: var(--ink-3); display: grid; transition: transform .2s var(--ease); }
+.trace-chev.is-open { transform: rotate(180deg); }
+.trace-steps { list-style: none; margin: 0; padding: 2px 12px 12px; display: grid; gap: 0; border-top: 1px solid var(--line-2); }
+.step { display: flex; gap: 10px; padding-top: 9px; position: relative; }
+.step:not(:last-child)::before { content: ""; position: absolute; left: 7.5px; top: 27px; bottom: -9px; width: 1px; background: var(--line); }
+.step-dot { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; flex: none; margin-top: 1px; background: var(--raised); position: relative; z-index: 1; }
+.step.is-done .step-dot { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+.step.is-running .step-dot { border-color: transparent; }
+.step.is-pending { opacity: .5; }
+.step-main { min-width: 0; flex: 1; }
+.step-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.step-label { font-weight: 540; }
+.step-tool { font: 500 11px/1.3 var(--font); font-stretch: 80%; color: var(--ink-3); background: var(--sunk); padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
+.step-detail { color: var(--ink-2); font-size: 12.5px; margin-top: 1px; }
+
+/* spec checkpoint */
+.spec { border: 1px solid color-mix(in oklab, var(--warn) 40%, var(--line)); border-radius: var(--r-lg); background: var(--raised); padding: 12px; display: grid; gap: 11px; }
+.spec--locked { border-color: var(--line); gap: 5px; }
+.spec-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.spec-title { font-weight: 640; }
+.spec-intro, .spec-line--muted { color: var(--ink-2); font-size: 12.5px; }
+.spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.spec-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.spec-label { color: var(--ink-2); font-size: 12.5px; font-weight: 520; display: inline-flex; gap: 6px; align-items: baseline; }
+.spec-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 2px; }
+.assumed { font-style: normal; font-size: 11px; font-weight: 600; color: var(--warn); background: var(--warn-soft); border-radius: 4px; padding: 0 5px; }
+.nf { display: grid; gap: 4px; min-width: 0; }
+.nf-label { font-size: 12px; color: var(--ink-2); font-weight: 520; display: flex; gap: 6px; align-items: baseline; }
+.nf-box { display: flex; align-items: center; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--panel); transition: border-color .15s, box-shadow .15s; }
+.nf.is-assumed .nf-box { border-color: color-mix(in oklab, var(--warn) 55%, var(--line)); }
+.nf-box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.nf-box input { border: 0; background: transparent; width: 100%; min-width: 0; padding: 6px 8px; font-variant-numeric: tabular-nums; font-weight: 560; }
+.nf-box input:focus { outline: none; }
+.nf-unit { color: var(--ink-3); padding-right: 9px; font-size: 12.5px; }
+.toggles { display: flex; gap: 5px; flex-wrap: wrap; }
+.toggle { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 4px 10px; font-size: 12.5px; font-weight: 560; color: var(--ink-3); transition: all .15s; }
+.toggle .dot { opacity: .35; }
+.toggle.is-on { color: var(--ink); border-color: var(--ink-3); background: var(--raised); }
+.toggle.is-on .dot { opacity: 1; }
+
+/* results and changes */
+.result { display: grid; gap: 10px; }
+.result-list { border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--raised); overflow: hidden; }
+.result-row {
+  width: 100%; display: grid; grid-template-columns: auto 1fr auto auto auto; align-items: center; gap: 10px;
+  border: 0; border-top: 1px solid var(--line-2); background: transparent; padding: 8px 11px; text-align: left; font-size: 13px;
+}
+.result-row:first-child { border-top: 0; }
+.result-row:hover { background: var(--sunk); }
+.result-row.is-active { background: var(--accent-soft); }
+.rr-name { font-weight: 560; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rr-v { color: var(--ink-2); font-variant-numeric: tabular-nums; text-align: right; min-width: 46px; }
+.rr-v.is-best { color: var(--good); font-weight: 640; }
+.result-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-left: -8px; }
+.deltas { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.delta { font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 6px; background: var(--sunk); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.delta.is-down { background: var(--good-soft); color: var(--good); }
+.delta.is-up { background: var(--warn-soft); color: var(--warn); }
+
+/* composer */
+.composer-wrap { padding: 8px 16px 16px; display: grid; gap: 8px; border-top: 1px solid var(--line-2); background: var(--panel); }
+.suggest { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; mask-image: linear-gradient(90deg, #000 85%, transparent); padding-bottom: 1px; }
+.suggest::-webkit-scrollbar { display: none; }
+.composer { border: 1px solid var(--line); background: var(--raised); border-radius: var(--r-xl); padding: 10px 10px 8px 14px; transition: border-color .15s, box-shadow .2s var(--ease); }
+.composer:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.composer textarea { width: 100%; border: 0; background: transparent; resize: none; line-height: 1.45; max-height: 160px; padding: 0; display: block; }
+.composer textarea:focus { outline: none; }
+.composer textarea::placeholder { color: var(--ink-3); }
+.composer-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.composer-row .hint { flex: 1; font-size: 11.5px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.composer-row .icon-btn { width: 30px; height: 30px; margin-left: -6px; }
+.send { width: 34px; height: 34px; border-radius: 50%; border: 0; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); transition: transform .15s var(--ease), opacity .15s, background .15s; }
+.send:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
+.send:disabled { opacity: .3; }
+
+/* ------------------------------------------------------------ viewer --- */
+.viewer { position: relative; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.tabbar { display: flex; align-items: center; gap: 10px; padding: 7px 12px 7px 10px; background: var(--panel); border-bottom: 1px solid var(--line); min-height: 50px; }
+.tabs { display: flex; align-items: center; gap: 4px; min-width: 0; flex: 1; overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { position: relative; display: flex; align-items: center; border-radius: var(--r-md); flex: none; transition: background .15s; }
+.tab:hover { background: var(--sunk); }
+.tab.is-active { background: var(--raised); box-shadow: 0 0 0 1px var(--line), 0 1px 3px rgb(0 0 0 / .06); }
+.tab.is-active::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -8px; height: 2px; border-radius: 2px; background: var(--accent); }
+.tab-btn { display: flex; align-items: center; gap: 8px; border: 0; background: transparent; padding: 6px 4px 6px 7px; font-weight: 580; color: var(--ink-2); }
+.tab.is-active .tab-btn { color: var(--ink); }
+.tab-x { width: 24px; height: 24px; margin-right: 4px; border: 0; background: transparent; color: var(--ink-3); border-radius: 6px; display: grid; place-items: center; opacity: 0; transition: opacity .15s, background .15s; }
+.tab:hover .tab-x, .tab.is-active .tab-x, .tab-x:focus-visible { opacity: 1; }
+.tab-x:hover { background: var(--sunk); color: var(--bad); }
+.add-wrap { position: relative; flex: none; }
+.tab-add { width: 32px; height: 32px; border-radius: var(--r-md); border: 1px dashed var(--line); background: transparent; color: var(--ink-2); display: grid; place-items: center; }
+.tab-add:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); border-style: solid; }
+.tab-add:disabled { opacity: .4; }
+.tabbar-tools { display: flex; align-items: center; gap: 6px; flex: none; }
+.rank-select { display: flex; align-items: center; gap: 7px; color: var(--ink-3); font-size: 12.5px; }
+.tool { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--raised); border-radius: var(--r-md); padding: 5px 10px; font-weight: 560; font-size: 13px; color: var(--ink-2); }
+.tool:hover:not(:disabled) { border-color: var(--ink-3); color: var(--ink); }
+.tool.is-on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.tool:disabled { opacity: .45; }
+.menu { position: fixed; z-index: 50; margin-top: 6px; min-width: 250px; background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-lg); padding: 6px; }
+.menu-title { font-size: 12px; color: var(--ink-3); padding: 6px 8px 4px; }
+.menu-item { width: 100%; display: flex; align-items: center; gap: 9px; border: 0; background: transparent; padding: 8px; border-radius: var(--r-sm); text-align: left; font-weight: 540; }
+.menu-item:hover { background: var(--sunk); }
+.menu-sub { margin-left: auto; color: var(--ink-3); font-size: 12px; font-weight: 400; }
+
+.stage {
+  position: relative; flex: 1; min-height: 0; overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in oklab, var(--viewer-top) 100%, transparent) 0%, transparent 70%),
+    linear-gradient(180deg, var(--viewer-top), var(--viewer-bottom));
+}
+.canvas-host { position: absolute; inset: 0; }
+.vw-canvas { display: block; touch-action: none; }
+.vw-labels { position: absolute; inset: 0; pointer-events: none; }
+.vw-tip {
+  position: absolute; left: 0; top: 0; z-index: 6; pointer-events: none; display: grid; gap: 1px;
+  background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-md); padding: 7px 10px;
+  box-shadow: var(--shadow); max-width: 240px; font-size: 12.5px;
+}
+.vw-tip strong { font-weight: 640; }
+.vw-tip span { color: var(--ink-2); }
+.gl-bubble {
+  width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+  border: 1.4px solid var(--gridline); color: var(--gridline); background: color-mix(in oklab, var(--viewer-top) 88%, transparent);
+  font: 650 11px/1 var(--font); font-stretch: 88%;
+}
+.gl-dim {
+  font: 520 10.5px/1 var(--font); font-stretch: 72%; color: var(--ink-2); font-variant-numeric: tabular-nums;
+  background: color-mix(in oklab, var(--viewer-top) 82%, transparent); padding: 2px 4px; border-radius: 3px; letter-spacing: .01em;
+}
+.gl-dim--total { font-weight: 650; color: var(--ink); }
+
+.empty { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px;
+  background-image: linear-gradient(var(--line-2) 1px, transparent 1px), linear-gradient(90deg, var(--line-2) 1px, transparent 1px);
+  background-size: 28px 28px; background-position: center; }
+.empty-card { max-width: 380px; text-align: center; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-xl); padding: 22px 24px; box-shadow: var(--shadow); }
+.empty-card h3 { font-size: 17px; font-weight: 640; }
+.empty-card p { color: var(--ink-2); margin-top: 6px; }
+
+.palette { position: absolute; left: 14px; top: 14px; z-index: 4; display: grid; gap: 2px; padding: 4px; border-radius: var(--r-lg); }
+.pal-btn { width: 34px; height: 34px; display: grid; place-items: center; border: 0; border-radius: var(--r-md); background: transparent; color: var(--ink-2); transition: background .15s, color .15s; }
+.pal-btn:hover { background: var(--sunk); color: var(--ink); }
+.pal-btn.is-on { color: var(--accent); background: var(--accent-soft); }
+.pal-sep { height: 1px; background: var(--line); margin: 3px 6px; }
+.gen-chip { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 5; display: flex; align-items: center; gap: 8px; padding: 7px 13px; border-radius: 999px; font-weight: 560; font-size: 13px; white-space: nowrap; max-width: calc(100% - 140px); overflow: hidden; text-overflow: ellipsis; }
+.orbit-hint { position: absolute; left: 62px; top: 22px; color: var(--ink-3); font-size: 12px; pointer-events: none; z-index: 2; }
+
+/* inspector */
+.inspector { position: absolute; right: 14px; top: 14px; z-index: 4; width: 300px; max-height: calc(100% - 132px); display: flex; flex-direction: column; border-radius: var(--r-lg); overflow: hidden; }
+.inspector.is-collapsed { max-height: none; }
+.insp-head { display: flex; align-items: center; gap: 10px; border: 0; background: transparent; padding: 10px 12px; text-align: left; width: 100%; flex: none; }
+.insp-titles { display: grid; flex: 1; min-width: 0; line-height: 1.25; }
+.insp-titles strong { font-weight: 650; }
+.insp-titles span { color: var(--ink-3); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.insp-body { overflow-y: auto; overscroll-behavior: contain; border-top: 1px solid var(--glass-edge); scrollbar-width: thin; }
+.insp-sec { padding: 12px; display: grid; gap: 10px; border-bottom: 1px solid var(--glass-edge); }
+.insp-sec:last-child { border-bottom: 0; }
+.insp-sec h3 { font-size: 12.5px; font-weight: 640; color: var(--ink); }
+.insp-sec .seg { width: 100%; }
+.insp-sec .seg .seg-btn { flex: 1; justify-content: center; }
+.insp-row .seg { width: auto; }
+.insp-row .seg .seg-btn { flex: none; }
+.insp-note { color: var(--ink-2); font-size: 12.5px; }
+.insp-warn { color: var(--warn); font-size: 12.5px; }
+.insp-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.insp-row--head h3 { margin: 0; }
+.insp-label { color: var(--ink-2); font-size: 12.5px; font-weight: 520; }
+.sf { display: grid; gap: 5px; }
+.sf-top { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; }
+.sf-top label { color: var(--ink-2); font-weight: 520; }
+.sf-top output { font-weight: 620; font-variant-numeric: tabular-nums; }
+.sf-top .unit { color: var(--ink-3); font-weight: 400; }
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 18px; background: transparent; margin: 0; }
+input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 4px; background: linear-gradient(90deg, var(--accent) var(--p), var(--line) var(--p)); }
+input[type="range"]::-moz-range-track { height: 4px; border-radius: 4px; background: linear-gradient(90deg, var(--accent) var(--p), var(--line) var(--p)); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; margin-top: -6px; border-radius: 50%; background: var(--raised); border: 1.5px solid var(--accent); box-shadow: 0 1px 3px rgb(0 0 0 / .2); transition: transform .15s; }
+input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--raised); border: 1.5px solid var(--accent); }
+input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.15); }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--raised); }
+.stepper button { width: 28px; height: 26px; border: 0; background: transparent; color: var(--ink-2); font-size: 15px; }
+.stepper button:hover:not(:disabled) { color: var(--accent); }
+.stepper button:disabled { opacity: .35; }
+.stepper output { min-width: 26px; text-align: center; font-weight: 620; font-variant-numeric: tabular-nums; }
+.study { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.study th { text-align: right; color: var(--ink-3); font-weight: 520; padding: 0 4px 4px; }
+.study th:first-child, .study td:first-child { text-align: left; }
+.study td { text-align: right; padding: 4px; border-top: 1px solid var(--glass-edge); color: var(--ink-2); }
+.study tr.is-chosen td { color: var(--ink); font-weight: 640; background: var(--accent-soft); }
+.study tr.is-chosen td:first-child { border-radius: 6px 0 0 6px; }
+.study tr.is-chosen td:last-child { border-radius: 0 6px 6px 0; }
+.members { margin: 0; display: grid; gap: 6px; }
+.members div { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; }
+.members dt { color: var(--ink-3); }
+.members dd { margin: 0; font-weight: 560; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* metrics strip */
+.metrics {
+  position: absolute; left: 14px; right: 328px; bottom: 14px; z-index: 4;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) auto; gap: 0; border-radius: var(--r-lg); overflow: hidden;
+  transition: opacity .3s;
+}
+.inspector.is-collapsed ~ .metrics { right: 14px; }
+.metrics.is-pending .metric-value { opacity: .35; }
+.metric { padding: 11px 14px 10px; border-left: 1px solid var(--glass-edge); min-width: 0; }
+.metric:first-child { border-left: 0; }
+.metric-label { color: var(--ink-2); font-size: 12px; font-weight: 520; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.best { color: var(--good); background: var(--good-soft); border-radius: 50%; width: 16px; height: 16px; display: inline-grid; place-items: center; flex: none; }
+.metric-name { overflow: hidden; text-overflow: ellipsis; }
+.metric-value { display: flex; align-items: baseline; gap: 4px; margin-top: 2px; font-size: 22px; font-weight: 640; font-stretch: 86%; letter-spacing: -0.015em; font-variant-numeric: tabular-nums; white-space: nowrap; transition: opacity .3s; }
+.metric-unit { font-size: 12px; font-weight: 500; color: var(--ink-3); letter-spacing: 0; }
+.metric-sub { color: var(--ink-3); font-size: 11.5px; font-stretch: 94%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.metric.is-best .metric-value { color: var(--good); }
+.metrics-note { display: flex; align-items: center; gap: 6px; padding: 0 14px; color: var(--ink-3); font-size: 11.5px; border-left: 1px solid var(--glass-edge); white-space: nowrap; }
+
+/* compare overlays */
+.cmp { position: absolute; z-index: 3; pointer-events: none; }
+.cmp + .cmp { border-left: 2px solid var(--bg); }
+.cmp-head { pointer-events: auto; position: absolute; left: 50%; transform: translateX(-50%); top: 12px; white-space: nowrap; display: flex; align-items: center; gap: 8px; border-radius: 999px; padding: 5px 12px 5px 6px; font-weight: 600; border: 1px solid var(--glass-edge); color: var(--ink); max-width: calc(100% - 24px); }
+.rank1 { font-size: 11px; font-weight: 650; color: var(--good); background: var(--good-soft); border-radius: 999px; padding: 1px 7px; white-space: nowrap; }
+.cmp-foot { position: absolute; left: 12px; right: 12px; bottom: 12px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-radius: var(--r-lg); overflow: hidden; pointer-events: auto; }
+.cmp-foot div { padding: 8px 10px; display: grid; border-left: 1px solid var(--glass-edge); min-width: 0; }
+.cmp-foot div:first-child { border-left: 0; }
+.cmp-foot span { color: var(--ink-3); font-size: 11.5px; }
+.cmp-foot strong { font-weight: 640; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cmp-foot .is-best strong { color: var(--good); }
+
+/* ------------------------------------------------------ report drawer --- */
+.drawer-scrim { position: fixed; inset: 0; z-index: 60; background: var(--scrim); display: flex; justify-content: flex-end; animation: fade .2s ease; }
+@keyframes fade { from { opacity: 0; } }
+.drawer { width: min(720px, 100%); height: 100%; background: var(--panel); border-left: 1px solid var(--line); box-shadow: var(--shadow-lg); display: flex; flex-direction: column; animation: slide .32s var(--ease); }
+@keyframes slide { from { transform: translateX(40px); opacity: 0; } }
+.drawer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 20px 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.drawer-head h2 { font-size: 20px; font-weight: 660; font-stretch: 106%; letter-spacing: -0.015em; }
+.drawer-head p { color: var(--ink-3); margin-top: 2px; }
+.drawer-actions { display: flex; align-items: center; gap: 4px; }
+.drawer-body { overflow-y: auto; padding: 6px 20px 28px; }
+.rep-sec { padding: 16px 0; border-bottom: 1px solid var(--line-2); display: grid; gap: 8px; }
+.rep-sec:last-child { border-bottom: 0; }
+.rep-sec h3 { font-size: 14px; font-weight: 650; }
+.rep-sec p { max-width: 68ch; color: var(--ink); line-height: 1.55; }
+.rep-rec { }
+.rep-rec p { font-size: 14.5px; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--raised); }
+.rep-table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; min-width: 460px; }
+.rep-table th, .rep-table td { padding: 8px 12px; text-align: left; border-top: 1px solid var(--line-2); vertical-align: top; }
+.rep-table thead th { border-top: 0; background: var(--sunk); font-weight: 600; }
+.rep-table tbody th { color: var(--ink-2); font-weight: 520; white-space: nowrap; }
+.rep-table td.is-best { color: var(--good); font-weight: 640; }
+.th-opt { display: inline-flex; align-items: center; gap: 7px; }
+.rep-list { margin: 0; padding-left: 18px; display: grid; gap: 6px; max-width: 68ch; }
+.bars { display: grid; gap: 14px; }
+.bars-label { font-size: 12.5px; font-weight: 600; color: var(--ink-2); margin-bottom: 4px; }
+.bar-row { display: grid; grid-template-columns: 16px 1fr 74px; align-items: center; gap: 8px; height: 22px; }
+.bar-name { font-weight: 650; color: var(--ink-2); font-size: 12px; }
+.bar-track { height: 10px; background: var(--sunk); border-radius: 5px; overflow: hidden; }
+.bar { display: block; height: 100%; border-radius: 5px; opacity: .55; transition: width .5s var(--ease); }
+.bar.is-best { opacity: 1; }
+.bar.is-timber { background: var(--timber); } .bar.is-concrete { background: var(--concrete); } .bar.is-steel { background: var(--steel); }
+.bar-val { text-align: right; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.md { width: 100%; min-height: 220px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--raised); padding: 10px; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink); resize: vertical; }
+
+/* ---------------------------------------------------------- walkthrough --- */
+.walk { position: absolute; right: 0; top: calc(100% + 8px); width: 340px; z-index: 40; border-radius: var(--r-lg); padding: 14px; background: var(--raised); }
+.walk-head { display: flex; justify-content: space-between; align-items: baseline; }
+.walk-head span { color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+.walk-intro { color: var(--ink-2); font-size: 12.5px; margin-top: 4px; }
+.walk-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 12px; }
+.walk-list li { display: flex; gap: 10px; }
+.walk-n { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; font-size: 11.5px; font-weight: 650; color: var(--ink-2); flex: none; }
+.walk-list li.is-done .walk-n { background: var(--good); border-color: var(--good); color: var(--raised); }
+.walk-list li.is-done .walk-title { color: var(--ink-3); }
+.walk-title { font-weight: 600; }
+.walk-body { color: var(--ink-2); font-size: 12.5px; }
+.walk-main .linkish { font-size: 12.5px; margin-top: 3px; text-align: left; }
+
+/* --------------------------------------------------------------- toast --- */
+.toast {
+  position: fixed; left: 50%; top: calc(62px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 70;
+  display: flex; align-items: center; gap: 10px; background: var(--ink); color: var(--panel);
+  border-radius: 999px; padding: 6px 6px 6px 16px; box-shadow: var(--shadow-lg); animation: rise .3s var(--ease); max-width: calc(100% - 32px);
+}
+@keyframes rise { from { transform: translate(-50%, -10px); opacity: 0; } }
+.toast-btn { display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 999px; background: color-mix(in oklab, var(--panel) 16%, transparent); color: var(--panel); padding: 5px 11px; font-weight: 600; }
+.toast .icon-btn { color: var(--panel); opacity: .7; }
+.toast .icon-btn:hover { background: transparent; opacity: 1; }
+
+/* -------------------------------------------------------------- narrow --- */
+@media (max-width: 1180px) {
+  .metrics { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .metrics-note { display: none; }
+  .metric-value { font-size: 19px; }
+  .orbit-hint { display: none; }
+}
+@media (max-width: 1020px) {
+  .rank-select span { display: none; }
+  .inspector { width: 270px; }
+  .metrics { right: 298px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .metric:nth-child(4), .metric:nth-child(5) { display: none; }
+}
+@media (max-width: 860px) {
+  .app { grid-template-rows: auto auto minmax(0, 1fr); }
+  .crumb-sep, .hide-sm { display: none; }
+  .topbar { gap: 6px; padding-inline: 16px 8px; }
+  .brand-name { font-size: 14px; }
+  .project input { width: 100%; padding-inline: 6px; }
+  .mobile-switch { display: flex; justify-content: center; padding: 8px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .mobile-switch .seg { width: 100%; max-width: 420px; }
+  .mobile-switch .seg-btn { flex: 1; justify-content: center; }
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .chat, .viewer { grid-row: 1; grid-column: 1; border-right: 0; }
+  .app[data-panel="chat"] .viewer { visibility: hidden; pointer-events: none; }
+  .app[data-panel="model"] .chat { display: none; }
+  .walk { position: fixed; left: 16px; right: 16px; top: 60px; width: auto; }
+  .inspector { left: 10px; right: 10px; top: auto; bottom: 10px; width: auto; max-height: 55%; }
+  .metrics { left: 10px; right: 10px; bottom: 62px; display: flex; overflow-x: auto; scrollbar-width: none; }
+  .inspector.is-collapsed ~ .metrics { right: 10px; }
+  .inspector:not(.is-collapsed) ~ .metrics { display: none; }
+  .metric, .metric:nth-child(4), .metric:nth-child(5) { display: block; flex: none; min-width: 128px; }
+  .palette { left: 10px; top: 10px; grid-auto-flow: column; }
+  .pal-sep { width: 1px; height: auto; margin: 6px 3px; }
+  .gen-chip { top: 60px; max-width: calc(100% - 32px); }
+  .tabbar { padding-inline: 10px; }
+  .cmp-foot { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cmp-foot div:nth-child(3) { border-left: 0; }
+  .drawer-head, .drawer-body { padding-inline: 16px; }
+}
+@media (max-width: 480px) {
+  .project .pill { display: none; }
+  .brand-name { display: none; }
+  .tabbar-tools .tool span { display: none; }
+  .rank-select { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+</style>
+<div id="app"></div>
+<noscript><p style="padding:24px">Structure Studio needs JavaScript to run.</p></noscript>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+// ============================================================================
+// Structure Studio engine: brief parser, bay study, member sizing, synthetic
+// cost / carbon / schedule, ranking, and geometry description for the viewer.
+// Pure functions only (no DOM, no three.js) so it can move to a backend later.
+// All factors are SYNTHETIC placeholders for WSP's real tools and data.
+// ============================================================================
+
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const ceilTo = (v, step) => Math.ceil(v / step - 1e-9) * step;
+const mm = (v) => Math.round(v * 1000);
+const pickUp = (list, v) => list.find((x) => x >= v - 1e-6) ?? list[list.length - 1];
+
+// Gridline letters skip I and O, as on structural drawings.
+const GRID_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+
+const PRIORITIES = {
+  balanced: { label: 'Balanced', weights: { cost: 1, carbon: 1, schedule: 1 } },
+  carbon: { label: 'Lowest carbon', weights: { cost: 0.6, carbon: 2.2, schedule: 0.6 } },
+  cost: { label: 'Lowest cost', weights: { cost: 2.2, carbon: 0.6, schedule: 0.6 } },
+  schedule: { label: 'Fastest build', weights: { cost: 0.6, carbon: 0.6, schedule: 2.2 } },
+};
+
+const SHARED = {
+  footing: { costPerM3: 780, carbonPerM3: 360, depth: 0.45 },
+  pitchDeg: 20,
+  limits: { length: [3, 120], width: [3, 60], storeyHeight: [2.4, 8], floors: [1, 12], bay: [2, 14] },
+};
+
+const MATERIALS = {
+  timber: {
+    key: 'timber', name: 'Mass timber', short: 'Timber', code: 'CSA O86',
+    system: 'Glulam posts and beams with CLT panels',
+    maxSpan: 6, selfWeight: 0.6,
+    carbon: { perM3: 240 },
+    cost: { column: 3600, beam: 3300, slab: 1750, perPiece: 1400, perColumn: 1200 },
+    build: { rate: 240, piecesPerDay: 26, minDays: 3, cureDays: 0 },
+  },
+  concrete: {
+    key: 'concrete', name: 'Reinforced concrete', short: 'Concrete', code: 'CSA A23.3',
+    system: 'Cast-in-place columns, beams and two-way slabs',
+    maxSpan: 8, selfWeight: 1.0,
+    carbon: { perM3: 520 },
+    cost: { column: 2100, beam: 1850, slab: 1000, perPiece: 1100, perColumn: 2200 },
+    build: { rate: 130, piecesPerDay: 16, minDays: 7, cureDays: 7 },
+  },
+  steel: {
+    key: 'steel', name: 'Structural steel', short: 'Steel', code: 'CSA S16',
+    system: 'Wide-flange frame with composite deck',
+    maxSpan: 10, selfWeight: 0.8,
+    carbon: { perKg: 1.25, compositeDeckPerM2: 68, roofDeckPerM2: 14 },
+    cost: { perKg: 6.4, compositeDeckPerM2: 165, roofDeckPerM2: 48, perPiece: 2100, perColumn: 1400 },
+    build: { rate: 260, piecesPerDay: 30, minDays: 4, cureDays: 0 },
+  },
+};
+const MATERIAL_KEYS = Object.keys(MATERIALS);
+
+// ---------------------------------------------------------------- sections --
+const GLULAM_W = [130, 175, 215, 265, 315, 365, 415, 465, 515, 565, 615, 665];
+const W_DEPTHS = [150, 200, 250, 310, 360, 410, 460, 530, 610, 690, 760, 840];
+
+const sections = {
+  timber: {
+    beam(span) {
+      const d = ceilTo(clamp(span / 14, 0.228, 1.4), 0.038); // 38 mm laminations
+      const b = pickUp(GLULAM_W, d * 400) / 1000;
+      return { b, d, area: b * d, name: `Glulam ${mm(b)} × ${mm(d)}` };
+    },
+    column(trib, floors) {
+      const b = pickUp(GLULAM_W, clamp(0.18 + 0.0016 * trib * floors, 0.175, 0.665) * 1000) / 1000;
+      const d = ceilTo(b, 0.038);
+      return { b, d, area: b * d, name: `Glulam ${mm(b)} × ${mm(d)}` };
+    },
+    slab(span) {
+      const plies = span <= 4.2 ? 3 : span <= 6.4 ? 5 : span <= 8 ? 7 : 9;
+      const t = plies * 0.035;
+      return { t, name: `CLT ${plies}-ply, ${mm(t)} mm` };
+    },
+    roofDeck(span) { return this.slab(Math.min(span, 3.6)); },
+  },
+  concrete: {
+    beam(span) {
+      const d = ceilTo(clamp(span / 12, 0.35, 1.1), 0.025);
+      const b = ceilTo(clamp(d * 0.5, 0.3, 0.6), 0.025);
+      return { b, d, area: b * d, name: `Beam ${mm(b)} × ${mm(d)}` };
+    },
+    column(trib, floors) {
+      const b = ceilTo(clamp(0.3 + 0.0012 * trib * floors, 0.3, 1.0), 0.05);
+      return { b, d: b, area: b * b, name: `Column ${mm(b)} × ${mm(b)}` };
+    },
+    slab(span) {
+      const t = ceilTo(clamp(span / 33, 0.15, 0.32), 0.01);
+      return { t, name: `Two-way slab, ${mm(t)} mm` };
+    },
+    roofDeck() { return { t: 0.15, name: 'Sloped slab, 150 mm' }; },
+  },
+  steel: {
+    beam(span, factor = 1) {
+      const dn = pickUp(W_DEPTHS, clamp((span * factor) / 22, 0.15, 0.84) * 1000);
+      const d = dn / 1000;
+      const area = 0.045 * d * d;
+      const kgm = Math.round(area * 7850);
+      return { b: clamp(d * 0.42, 0.1, 0.3), d, area, kgm, name: `W${dn}×${kgm}` };
+    },
+    column(trib, floors) {
+      const dn = pickUp([200, 250, 310, 360, 410, 460], clamp(0.18 + 0.0004 * trib * floors, 0.18, 0.46) * 1000);
+      const d = dn / 1000;
+      const area = 0.12 * d * d;
+      const kgm = Math.round(area * 7850);
+      return { b: d * 0.85, d, area, kgm, name: `W${dn}×${kgm}` };
+    },
+    brace() { return { b: 0.127, d: 0.127, kgm: 28, name: 'HSS 127×127×8' }; },
+    slab() { return { t: 0.14, name: 'Composite deck, 140 mm' }; },
+    roofDeck() { return { t: 0.04, name: 'Metal roof deck, 38 mm' }; },
+  },
+};
+
+// ---------------------------------------------------------------- spec -----
+function normalizeSpec(s = {}) {
+  const lim = SHARED.limits;
+  return {
+    type: s.type || 'building',
+    length: clamp(+s.length || 12, ...lim.length),
+    width: clamp(+s.width || 8, ...lim.width),
+    storeyHeight: clamp(+s.storeyHeight || 3.6, ...lim.storeyHeight),
+    floors: Math.round(clamp(+s.floors || 1, ...lim.floors)),
+    roof: s.roof === 'gable' ? 'gable' : 'flat',
+    bay: s.bay ? clamp(+s.bay, ...lim.bay) : null,
+  };
+}
+
+function layoutGrid(L, W, span) {
+  const nx = Math.max(1, Math.ceil(L / span - 1e-9));
+  const nz = Math.max(1, Math.ceil(W / span - 1e-9));
+  const sx = L / nx, sz = W / nz;
+  const xs = Array.from({ length: nx + 1 }, (_, i) => -L / 2 + i * sx);
+  const zs = Array.from({ length: nz + 1 }, (_, j) => -W / 2 + j * sz);
+  return { nx, nz, sx, sz, xs, zs, span };
+}
+
+// Size members and add up quantities, cost, carbon and schedule for one grid.
+function evaluate(spec, matKey, span) {
+  const M = MATERIALS[matKey];
+  const S = sections[matKey];
+  const { length: L, width: W, storeyHeight: H, floors: n, roof } = spec;
+  const g = layoutGrid(L, W, span);
+  const trib = g.sx * g.sz;
+  const plan = L * W;
+  const pitch = (SHARED.pitchDeg * Math.PI) / 180;
+  const gable = roof === 'gable';
+  const nCols = (g.nx + 1) * (g.nz + 1);
+
+  // Sections
+  const sec = { column: S.column(trib, n) };
+  if (matKey === 'steel') {
+    sec.beamX = S.beam(g.sx);
+    sec.girder = S.beam(g.sz, 1.25);
+    sec.infill = S.beam(g.sx, 0.9);
+    sec.brace = S.brace();
+  } else {
+    sec.beamX = S.beam(g.sx);
+    sec.girder = S.beam(g.sz);
+  }
+  sec.slab = S.slab(Math.min(g.sx, g.sz));
+  if (gable) {
+    const slope = W / 2 / Math.cos(pitch);
+    sec.rafter = S.beam(Math.min(slope, g.sz / Math.cos(pitch)));
+    sec.purlin = S.beam(g.sx, 0.7);
+    sec.roofDeck = S.roofDeck(g.sx);
+  } else {
+    sec.roofDeck = matKey === 'steel' ? S.roofDeck() : sec.slab;
+  }
+  const infillPerBay = matKey === 'steel' ? Math.max(0, Math.ceil(g.sz / 3.2) - 1) : 0;
+
+  // Lengths (m)
+  const colLen = nCols * n * H;
+  const beamXLenPerLevel = (g.nz + 1) * L;
+  const girderLenPerLevel = (g.nx + 1) * W;
+  const infillLenPerLevel = infillPerBay * g.nz * L;
+  const levels = n; // beams at every level, including roof / tie level
+  const slabLevels = gable ? n - 1 : n - 1; // suspended floors
+  const roofArea = gable ? 2 * L * (W / 2 / Math.cos(pitch)) : plan;
+  const rafterLen = gable ? 2 * (g.nx + 1) * (W / 2 / Math.cos(pitch)) + L : 0; // rafters + ridge
+  const purlinLen = gable ? 4 * L : 0;
+  const bracedBays = (g.nx >= 3 ? 4 : 2) + 2;
+  const braceLen = matKey === 'steel' ? bracedBays * 2 * n * Math.hypot(g.sx, H) : 0;
+
+  // Pieces to fabricate, connect and erect (drives connection cost and crane time)
+  const piecesPerLevel = nCols + (g.nz + 1) * g.nx + (g.nx + 1) * g.nz + infillPerBay * g.nz * g.nx;
+  const roofPieces = gable ? 2 * (g.nx + 1) + 1 + 4 * g.nx : 0;
+  const pieces = piecesPerLevel * n + roofPieces;
+
+  // Footings
+  const footVol = clamp(0.35 + 0.025 * trib * n * M.selfWeight, 0.4, 14);
+  const footingVol = footVol * nCols;
+  const footSide = Math.max(0.8, Math.sqrt(footVol / SHARED.footing.depth));
+
+  // Small members connect cheaply; piece costs reach full rate at ~90 m² of load per column stack.
+  const pieceScale = clamp((trib * n) / 90, 0.25, 1);
+  let cost = footingVol * SHARED.footing.costPerM3 + pieceScale * (pieces * M.cost.perPiece + nCols * n * M.cost.perColumn);
+  let carbon = footingVol * SHARED.footing.carbonPerM3;
+  let steelKg = 0, volume = 0;
+
+  if (matKey === 'steel') {
+    steelKg =
+      colLen * sec.column.kgm +
+      levels * (beamXLenPerLevel * sec.beamX.kgm + girderLenPerLevel * sec.girder.kgm + (gable ? 0 : infillLenPerLevel * sec.infill.kgm)) +
+      (gable ? (n - 1) * infillLenPerLevel * sec.infill.kgm + rafterLen * sec.rafter.kgm + purlinLen * sec.purlin.kgm : 0) +
+      braceLen * sec.brace.kgm;
+    const compositeArea = slabLevels * plan;
+    cost += steelKg * M.cost.perKg + compositeArea * M.cost.compositeDeckPerM2 + roofArea * M.cost.roofDeckPerM2;
+    carbon += steelKg * M.carbon.perKg + compositeArea * M.carbon.compositeDeckPerM2 + roofArea * M.carbon.roofDeckPerM2;
+  } else {
+    const vCol = colLen * sec.column.area;
+    const vBeam =
+      levels * (beamXLenPerLevel * sec.beamX.area + girderLenPerLevel * sec.girder.area) +
+      (gable ? rafterLen * sec.rafter.area + purlinLen * sec.purlin.area : 0);
+    const vSlab = slabLevels * plan * sec.slab.t + roofArea * sec.roofDeck.t;
+    volume = vCol + vBeam + vSlab;
+    cost += vCol * M.cost.column + vBeam * M.cost.beam + vSlab * M.cost.slab;
+    carbon += volume * M.carbon.perM3;
+  }
+
+  // Schedule (working days, 5 per week)
+  const mobilize = 1 + Math.min(4, (plan * n) / 400);
+  const footingDays = 2 + 0.35 * nCols;
+  let floorDays = 0;
+  for (let k = 0; k < n; k++) {
+    const pk = piecesPerLevel + (k === n - 1 ? roofPieces : 0);
+    floorDays += Math.max(M.build.minDays, (plan * (k === n - 1 && gable ? 1.1 : 1)) / M.build.rate + pk / M.build.piecesPerDay);
+  }
+  const days = mobilize + footingDays + floorDays + M.build.cureDays;
+
+  const gfa = plan * n;
+  return {
+    span, grid: g, sections: sec, infillPerBay, footSide, bracedBays,
+    quantities: { columns: nCols, footings: nCols, colLen, footingVol, steelKg, volume, gfa, pieces },
+    metrics: {
+      cost, carbon, weeks: days / 5, days,
+      intensity: carbon / gfa, costPerM2: cost / gfa,
+      bayX: g.sx, bayZ: g.sz, columns: nCols,
+    },
+  };
+}
+
+// Score relative to the best value in a set: 1.0 means best on every metric.
+function scoreSet(metricsList, priority = 'balanced') {
+  const w = PRIORITIES[priority]?.weights || PRIORITIES.balanced.weights;
+  const keys = [['cost', 'cost'], ['carbon', 'carbon'], ['schedule', 'weeks']];
+  const best = Object.fromEntries(keys.map(([k, m]) => [k, Math.min(...metricsList.map((x) => x[m]))]));
+  const wsum = w.cost + w.carbon + w.schedule;
+  return metricsList.map((x) => keys.reduce((s, [k, m]) => s + (w[k] * (x[m] / best[k])), 0) / wsum);
+}
+
+// The agent's framing study: try several bay sizes, keep the best one.
+function studyBays(spec, matKey, priority) {
+  const M = MATERIALS[matKey];
+  const raw = [0.6, 0.8, 1.0, 1.2].map((f) => Math.round(M.maxSpan * f * 2) / 2);
+  const seen = new Set();
+  const runs = [];
+  for (const s of raw) {
+    const r = evaluate(spec, matKey, s);
+    const key = `${r.grid.nx}x${r.grid.nz}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    runs.push(r);
+  }
+  // Operations: tight grids crowd the floor plate, so they carry a small penalty.
+  const scores = scoreSet(runs.map((r) => r.metrics), priority).map((s, i) => {
+    const bay = Math.sqrt(runs[i].grid.sx * runs[i].grid.sz);
+    return s + 0.25 * Math.max(0, M.maxSpan / bay - 1) ** 2;
+  });
+  runs.forEach((r, i) => (r.score = scores[i]));
+  const bestIdx = scores.indexOf(Math.min(...scores));
+  return { runs, bestIdx };
+}
+
+function computeOption(specIn, matKey, priority = 'balanced') {
+  const spec = normalizeSpec(specIn);
+  const study = studyBays(spec, matKey, priority);
+  const chosen = spec.bay ? evaluate(spec, matKey, spec.bay) : study.runs[study.bestIdx];
+  return {
+    spec, material: matKey, manualBay: !!spec.bay, ...chosen,
+    study: study.runs.map((r, i) => ({
+      span: r.span, nx: r.grid.nx, nz: r.grid.nz, sx: r.grid.sx, sz: r.grid.sz,
+      cost: r.metrics.cost, carbon: r.metrics.carbon, weeks: r.metrics.weeks,
+      columns: r.metrics.columns, depth: Math.max(r.sections.beamX.d, r.sections.girder.d),
+      chosen: !spec.bay && i === study.bestIdx,
+    })),
+  };
+}
+
+function rankOptions(results, priority = 'balanced') {
+  if (!results.length) return [];
+  const scores = scoreSet(results.map((r) => r.metrics), priority);
+  return scores.map((s, i) => ({ i, s })).sort((a, b) => a.s - b.s).map((x) => x.i);
+}
+
+// Best (lowest) value per metric across a set, for badges.
+function bestOf(results) {
+  const pick = (k) => Math.min(...results.map((r) => r.metrics[k]));
+  return { cost: pick('cost'), carbon: pick('carbon'), weeks: pick('weeks'), columns: pick('columns') };
+}
+
+// --------------------------------------------------------------- geometry --
+// Describes every member as a segment (a -> b) with a cross-section (w x d).
+// The viewer turns these into instanced meshes and animates them by `delay`.
+function buildGeometry(res) {
+  const { spec, grid: g, sections: sec, material } = res;
+  const { length: L, width: W, storeyHeight: H, floors: n, roof } = spec;
+  const gable = roof === 'gable';
+  const pitch = (SHARED.pitchDeg * Math.PI) / 180;
+  const rise = (W / 2) * Math.tan(pitch);
+  const top = n * H;
+  const P = {
+    footing: [], column: [], beam: [], girder: [], infill: [], brace: [],
+    slab: [], roofslab: [], rafter: [], purlin: [], roofdeck: [],
+    wall: [], glass: [], door: [],
+  };
+  const num = (i) => String(i + 1);
+  const let_ = (j) => GRID_LETTERS[j] || `Z${j}`;
+  const span = 0.84 / n; // build window per level
+  const t0 = (k) => 0.12 + k * span; // k = 0-based level
+  const xN = (x) => (x + L / 2) / L; // 0..1 sweep along length
+
+  const slabT = sec.slab.t;
+  const roofT = gable ? 0 : sec.roofDeck.t;
+  const slabAt = (k) => (k === n - 1 ? roofT : slabT); // slab thickness at top of level k
+
+  // Footings
+  for (let i = 0; i <= g.nx; i++) for (let j = 0; j <= g.nz; j++) {
+    const x = g.xs[i], z = g.zs[j];
+    P.footing.push({
+      a: [x, -0.42, z], b: [x, 0.04, z], w: res.footSide, d: res.footSide,
+      delay: 0.1 * xN(x),
+      meta: { title: `Footing ${let_(j)}${num(i)}`, sub: `${res.footSide.toFixed(2)} m square pad` },
+    });
+  }
+
+  for (let k = 0; k < n; k++) {
+    const y0 = k * H, y1 = (k + 1) * H;
+    const base = t0(k);
+    const tTop = slabAt(k);
+    // Columns
+    for (let i = 0; i <= g.nx; i++) for (let j = 0; j <= g.nz; j++) {
+      const x = g.xs[i], z = g.zs[j];
+      P.column.push({
+        a: [x, y0 + (k === 0 ? 0.04 : 0), z], b: [x, y1 - tTop, z], w: sec.column.b, d: sec.column.d,
+        delay: base + 0.28 * span * xN(x), shape: material === 'steel' ? 'I' : 'box', spin: true,
+        meta: { title: `Column ${let_(j)}${num(i)}, level ${k + 1}`, sub: `${sec.column.name}, ${H.toFixed(1)} m` },
+      });
+    }
+    const isTop = k === n - 1;
+    const yBeam = (d) => y1 - tTop - d / 2;
+    // Beams along x (on lettered gridlines)
+    for (let j = 0; j <= g.nz; j++) for (let i = 0; i < g.nx; i++) {
+      const s = sec.beamX;
+      P.beam.push({
+        a: [g.xs[i], yBeam(s.d), g.zs[j]], b: [g.xs[i + 1], yBeam(s.d), g.zs[j]], w: s.b, d: s.d,
+        delay: base + span * (0.3 + 0.22 * xN(g.xs[i])), shape: material === 'steel' ? 'I' : 'box',
+        meta: { title: `Beam on ${let_(j)}, ${num(i)} to ${num(i + 1)}`, sub: `${s.name}, span ${g.sx.toFixed(1)} m` },
+      });
+    }
+    // Girders along z (on numbered gridlines)
+    for (let i = 0; i <= g.nx; i++) for (let j = 0; j < g.nz; j++) {
+      const s = sec.girder;
+      P.girder.push({
+        a: [g.xs[i], yBeam(s.d), g.zs[j]], b: [g.xs[i], yBeam(s.d), g.zs[j + 1]], w: s.b, d: s.d,
+        delay: base + span * (0.36 + 0.22 * xN(g.xs[i])), shape: material === 'steel' ? 'I' : 'box',
+        meta: { title: `${material === 'steel' ? 'Girder' : 'Beam'} on ${num(i)}, ${let_(j)} to ${let_(j + 1)}`, sub: `${s.name}, span ${g.sz.toFixed(1)} m` },
+      });
+    }
+    // Steel infill beams
+    if (material === 'steel' && !(isTop && gable) && res.infillPerBay > 0) {
+      const s = sec.infill;
+      for (let j = 0; j < g.nz; j++) for (let m = 1; m <= res.infillPerBay; m++) {
+        const z = g.zs[j] + (m * g.sz) / (res.infillPerBay + 1);
+        for (let i = 0; i < g.nx; i++) {
+          P.infill.push({
+            a: [g.xs[i], yBeam(s.d), z], b: [g.xs[i + 1], yBeam(s.d), z], w: s.b * 0.8, d: s.d,
+            delay: base + span * (0.5 + 0.18 * xN(g.xs[i])), shape: 'I',
+            meta: { title: 'Infill beam', sub: `${s.name}, span ${g.sx.toFixed(1)} m` },
+          });
+        }
+      }
+    }
+    // Steel X-bracing in end bays
+    if (material === 'steel') {
+      const s = sec.brace;
+      const ib = g.nx >= 3 ? [0, g.nx - 1] : [0];
+      const yb0 = y0 + 0.15, yb1 = y1 - tTop - sec.beamX.d;
+      for (const z of [g.zs[0], g.zs[g.nz]]) for (const i of ib) {
+        const x0 = g.xs[i], x1 = g.xs[i + 1];
+        for (const [a, b] of [[[x0, yb0, z], [x1, yb1, z]], [[x1, yb0, z], [x0, yb1, z]]]) {
+          P.brace.push({ a, b, w: s.b, d: s.d, delay: base + span * 0.55, meta: { title: 'Vertical brace', sub: s.name } });
+        }
+      }
+      const jb = Math.floor((g.nz - 1) / 2);
+      const z0 = g.zs[jb], z1 = g.zs[jb + 1];
+      for (const x of [g.xs[0], g.xs[g.nx]]) {
+        for (const [a, b] of [[[x, yb0, z0], [x, yb1, z1]], [[x, yb0, z1], [x, yb1, z0]]]) {
+          P.brace.push({ a, b, w: s.b, d: s.d, delay: base + span * 0.58, meta: { title: 'Vertical brace', sub: s.name } });
+        }
+      }
+    }
+    // Slabs (CLT panels for timber, one pour per bay otherwise)
+    if (!(isTop && gable)) {
+      const t = tTop;
+      const role = isTop ? 'roofslab' : 'slab';
+      const name = isTop ? sec.roofDeck.name : sec.slab.name;
+      const yS = y1 - t / 2;
+      if (material === 'timber') {
+        const strips = Math.max(1, Math.ceil(L / 2.4));
+        const pw = L / strips;
+        for (let j = 0; j < g.nz; j++) for (let p = 0; p < strips; p++) {
+          const xa = -L / 2 + p * pw + 0.012, xb = -L / 2 + (p + 1) * pw - 0.012;
+          P[role].push({
+            a: [xa, yS, (g.zs[j] + g.zs[j + 1]) / 2], b: [xb, yS, (g.zs[j] + g.zs[j + 1]) / 2], w: g.sz - 0.02, d: t,
+            delay: base + span * (0.62 + 0.3 * (p / strips)),
+            meta: { title: isTop ? 'Roof panel' : `Floor panel, level ${k + 2}`, sub: `${name}, ${pw.toFixed(2)} m wide` },
+          });
+        }
+      } else {
+        for (let j = 0; j < g.nz; j++) for (let i = 0; i < g.nx; i++) {
+          P[role].push({
+            a: [g.xs[i], yS, (g.zs[j] + g.zs[j + 1]) / 2], b: [g.xs[i + 1], yS, (g.zs[j] + g.zs[j + 1]) / 2], w: g.sz, d: t,
+            delay: base + span * (0.62 + 0.3 * xN(g.xs[i])),
+            meta: { title: isTop ? 'Roof slab' : `Floor slab, level ${k + 2}`, sub: name },
+          });
+        }
+      }
+    }
+  }
+
+  // Gable roof framing
+  if (gable) {
+    const base = t0(n - 1) + span * 0.62;
+    const r = sec.rafter, p = sec.purlin;
+    const over = 0.35;
+    const ox = over * Math.cos(pitch), oy = over * Math.sin(pitch);
+    for (let i = 0; i <= g.nx; i++) {
+      const x = g.xs[i];
+      for (const s of [-1, 1]) {
+        P.rafter.push({
+          a: [x, top - oy, s * (W / 2 + ox)], b: [x, top + rise, 0], w: r.b, d: r.d,
+          delay: base + 0.12 * span * xN(x), shape: material === 'steel' ? 'I' : 'box',
+          meta: { title: `Rafter on ${num(i)}`, sub: `${r.name}, ${SHARED.pitchDeg}° pitch` },
+        });
+      }
+    }
+    P.rafter.push({
+      a: [-L / 2, top + rise, 0], b: [L / 2, top + rise, 0], w: r.b, d: r.d,
+      delay: base + 0.14 * span, shape: material === 'steel' ? 'I' : 'box',
+      meta: { title: 'Ridge beam', sub: r.name },
+    });
+    // Purlins sit on the rafters and the deck sits on the purlins, offset along the slope normal
+    const deckT = Math.max(0.05, sec.roofDeck.t);
+    const slope = W / 2 / Math.cos(pitch) + over;
+    for (const s of [-1, 1]) {
+      const e0 = [s * (W / 2 + ox), top - oy], e1 = [0, top + rise];
+      const n = [s * Math.sin(pitch), Math.cos(pitch)]; // (z, y) outward normal
+      const at = (f, off) => [e0[0] + f * (e1[0] - e0[0]) + n[0] * off, e0[1] + f * (e1[1] - e0[1]) + n[1] * off];
+      for (const f of [0.3, 0.62, 0.92]) {
+        const [z, yy] = at(f, r.d / 2 + p.d / 2);
+        P.purlin.push({
+          a: [-L / 2, yy, z], b: [L / 2, yy, z], w: p.b, d: p.d, roll: s * pitch, delay: base + 0.2 * span,
+          meta: { title: 'Purlin', sub: p.name },
+        });
+      }
+      const [zc, yc] = at(0.5, r.d / 2 + p.d + deckT / 2 + 0.01);
+      P.roofdeck.push({
+        a: [-L / 2 - 0.3, yc, zc], b: [L / 2 + 0.3, yc, zc], w: slope, d: deckT, roll: s * pitch,
+        delay: base + 0.25 * span, meta: { title: 'Roof deck', sub: sec.roofDeck.name },
+      });
+    }
+  }
+
+  // Envelope (walls, glazing, door) for the "Envelope" view
+  const off = sec.column.b / 2 + 0.08;
+  const wallT = 0.12;
+  for (let k = 0; k < n; k++) {
+    const y0 = k * H, h = H;
+    const yc = y0 + h / 2;
+    for (const s of [-1, 1]) {
+      P.wall.push({ a: [-L / 2 - off, yc, s * (W / 2 + off)], b: [L / 2 + off, yc, s * (W / 2 + off)], w: wallT, d: h, delay: 0, meta: { title: 'Wall', sub: 'Cladding' } });
+      P.wall.push({ a: [s * (L / 2 + off), yc, -W / 2 - off], b: [s * (L / 2 + off), yc, W / 2 + off], w: wallT, d: h, delay: 0, meta: { title: 'Wall', sub: 'Cladding' } });
+    }
+    // Glazing between columns on the long walls (skip the door bay at ground level)
+    for (const s of [-1, 1]) for (let i = 0; i < g.nx; i++) {
+      if (k === 0 && s === 1 && i === 0) continue;
+      const inset = Math.min(0.6, g.sx * 0.12);
+      const gh = Math.min(1.6, h * 0.45);
+      const gy = y0 + Math.max(0.9, h * 0.32) + gh / 2;
+      if (g.sx - 2 * inset < 0.8) continue;
+      P.glass.push({ a: [g.xs[i] + inset, gy, s * (W / 2 + off + wallT / 2 + 0.01)], b: [g.xs[i + 1] - inset, gy, s * (W / 2 + off + wallT / 2 + 0.01)], w: 0.02, d: gh, delay: 0, meta: { title: 'Window', sub: 'Glazing' } });
+    }
+  }
+  const doorW = L > 14 ? 3.6 : 1.0, doorH = L > 14 ? Math.min(3.6, H - 0.4) : Math.min(2.1, H - 0.3);
+  const dx = g.xs[0] + Math.min(g.sx, L) / 2;
+  P.door.push({ a: [dx - doorW / 2, doorH / 2, W / 2 + off + wallT / 2 + 0.015], b: [dx + doorW / 2, doorH / 2, W / 2 + off + wallT / 2 + 0.015], w: 0.03, d: doorH, delay: 0, meta: { title: 'Door', sub: `${doorW.toFixed(1)} × ${doorH.toFixed(1)} m` } });
+
+  return {
+    parts: P,
+    bounds: { L, W, top: gable ? top + rise : top, rise, gable, off, n, H },
+    grid: {
+      xs: g.xs, zs: g.zs,
+      xLabels: g.xs.map((_, i) => num(i)),
+      zLabels: g.zs.map((_, j) => let_(j)),
+    },
+  };
+}
+
+// ----------------------------------------------------------------- parser --
+const WORDNUM = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, single: 1 };
+const NUM = '(\\d+(?:\\.\\d+)?)';
+const UNIT = '(m|metres?|meters?|ft|feet|foot|\')?';
+
+const MAT_PATTERNS = [
+  ['timber', /\b(timber|wood(en)?|glulam|clt|mass[- ]timber|lumber)\b/gi],
+  ['concrete', /\b(concrete|rc|cast[- ]in[- ]place|precast)\b/gi],
+  ['steel', /\b(steel|metal)\b/gi],
+];
+const TYPES = ['shed', 'garage', 'workshop', 'warehouse', 'office', 'pavilion', 'school', 'lab', 'laboratory', 'library', 'residence', 'house', 'cabin', 'barn', 'studio', 'gym', 'hangar', 'clinic', 'building', 'annex', 'hall'];
+
+function parseBrief(text) {
+  const t = ` ${String(text || '').toLowerCase().replace(/×/g, 'x')} `;
+  const out = { materials: [], units: 'm' };
+  const toM = (v, u) => (u && /^(ft|feet|foot|')$/.test(u) ? ((out.units = 'ft'), v * 0.3048) : v);
+
+  // Footprint "6 x 4", "6 m by 4 m", "6x4x3 m"
+  const dimRe = new RegExp(`${NUM}\\s*${UNIT}\\s*(?:x|by|\\*)\\s*${NUM}\\s*${UNIT}(?:\\s*(?:x|by|\\*)\\s*${NUM}\\s*${UNIT})?`, 'i');
+  const dm = t.match(dimRe);
+  if (dm) {
+    const u = dm[2] || dm[4] || dm[6];
+    const a = toM(+dm[1], u), b = toM(+dm[3], u);
+    out.length = Math.max(a, b);
+    out.width = Math.min(a, b);
+    if (dm[5]) out.storeyHeight = toM(+dm[5], u);
+  }
+  // Single dimension edits
+  const lenM = t.match(new RegExp(`${NUM}\\s*${UNIT}\\s*(?:long|in length)\\b`)) || t.match(new RegExp(`length\\s*(?:to|of|=|:)?\\s*${NUM}\\s*${UNIT}`));
+  if (lenM && !dm) out.length = toM(+lenM[1], lenM[2]);
+  const widM = t.match(new RegExp(`${NUM}\\s*${UNIT}\\s*(?:wide|in width|deep)\\b`)) || t.match(new RegExp(`width\\s*(?:to|of|=|:)?\\s*${NUM}\\s*${UNIT}`));
+  if (widM && !dm) out.width = toM(+widM[1], widM[2]);
+
+  // Height
+  const hM =
+    t.match(new RegExp(`${NUM}\\s*${UNIT}\\s*(?:tall|high|clear|to (?:the )?eaves?|eaves?|floor[- ]to[- ]floor|storey height|story height|ceilings?)\\b`)) ||
+    t.match(new RegExp(`(?:height|eaves?|clear height|storey height|story height)\\s*(?:of|to|=|:|at)?\\s*${NUM}\\s*${UNIT}`));
+  if (hM) out.storeyHeight = toM(+hM[1], hM[2]);
+
+  // Floors
+  const fM = t.match(/\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|single)[\s-]*(?:storeys?|stor(?:y|ies)|floors?|levels?)\b/);
+  if (fM && !/(storey|story) height/.test(fM[0])) out.floors = WORDNUM[fM[1]] || +fM[1];
+  if (/\bbungalow\b/.test(t)) out.floors = 1;
+
+  // Materials (in order of mention)
+  const found = [];
+  for (const [key, re] of MAT_PATTERNS) {
+    re.lastIndex = 0;
+    const m = re.exec(t);
+    if (m) found.push([m.index, key]);
+  }
+  out.materials = found.sort((a, b) => a[0] - b[0]).map((x) => x[1]);
+  if (/\ball (three|3)( materials| systems)?\b|\bevery material\b/.test(t)) out.materials = [...MATERIAL_KEYS];
+
+  // Roof
+  if (/\b(gable|gabled|pitched|peaked|sloped|a-frame)\b/.test(t)) out.roof = 'gable';
+  else if (/\bflat(?:[- ]roof)?\b/.test(t)) out.roof = 'flat';
+
+  // Type
+  const ty = TYPES.find((k) => new RegExp(`\\b${k}s?\\b`).test(t));
+  if (ty) out.type = ty === 'laboratory' ? 'lab' : ty;
+
+  // Priority
+  if (/\b(carbon|emissions?|green|sustainab\w*|low[- ]impact|climate)\b/.test(t)) out.priority = 'carbon';
+  else if (/\b(cheap\w*|cost|budget|price|afford\w*|economical)\b/.test(t)) out.priority = 'cost';
+  else if (/\b(fast\w*|quick\w*|schedule|speed|asap|soon)\b/.test(t)) out.priority = 'schedule';
+  else if (/\bbalanced?\b/.test(t)) out.priority = 'balanced';
+
+  // Bay spacing
+  const bM = t.match(new RegExp(`${NUM}\\s*${UNIT}\\s*bays?\\b`)) || t.match(new RegExp(`bays?\\s*(?:of|at|spacing|to|=|:)?\\s*${NUM}\\s*${UNIT}`)) || t.match(new RegExp(`columns?\\s*(?:every|at|spaced)\\s*${NUM}\\s*${UNIT}`));
+  if (bM) out.bay = toM(+bM[1], bM[2]);
+  if (/\b(auto(matic)?|optimi[sz]e)\b.*\bbays?\b|\bbays?\b.*\b(auto(matic)?|optimi[sz]e)/.test(t)) out.bay = 'auto';
+
+  // Intents
+  const letter = (re) => { const m = t.match(re); return m ? m[1].toUpperCase() : null; };
+  out.deleteLetter = letter(/\b(?:delete|remove|drop|discard|get rid of)\s+(?:option\s+)?([a-h])\b(?!\s*\w*\s*storey)/);
+  if (!out.deleteLetter && /\b(delete|remove|discard)\s+(this|the current|current|active)\s+option\b/.test(t)) out.deleteLetter = 'ACTIVE';
+  out.selectLetter = letter(/\b(?:show|open|go to|view|select|switch to|back to)\s+option\s+([a-h])\b/);
+  out.newOption = /\b(new option|another option|as an option|second option|third option|also try|add (?:a |an )?(?:\w+ )?(?:version|option)|try (?:it |this |the same )?(?:in|with|using|as)|what about|alternative|duplicate|copy (?:of|this))\b/.test(t);
+  out.compare = /\b(compare|comparison|side[- ]by[- ]side|split[- ]?screen)\b/.test(t);
+  out.report = /\b(report|summary|summari[sz]e|write[- ]?up)\b/.test(t);
+  out.reset = /\b(start over|new project|reset|clear everything)\b/.test(t);
+  out.help = /\b(help|what can you do|how does this work)\b/.test(t) || t.trim() === '?';
+  out.undo = /\bundo\b/.test(t);
+  out.envelope = /\b(show|add|turn on)\b.*\b(walls?|cladding|envelope)\b/.test(t) ? true : /\b(hide|remove|turn off)\b.*\b(walls?|cladding|envelope)\b/.test(t) ? false : undefined;
+
+  out.hasSpec = ['length', 'width', 'storeyHeight', 'floors', 'roof', 'type'].some((k) => out[k] !== undefined) || out.bay !== undefined;
+  return out;
+}
+
+// ------------------------------------------------------------ formatters --
+const fmt = {
+  money(v) {
+    if (v >= 1e6) return `$${(v / 1e6).toFixed(v >= 1e7 ? 1 : 2)}M`;
+    if (v >= 1e3) return `$${(v / 1e3).toFixed(v >= 1e5 ? 0 : 1)}k`;
+    return `$${Math.round(v)}`;
+  },
+  carbon(kg) {
+    const t = kg / 1000;
+    return t >= 100 ? `${Math.round(t)}` : t >= 10 ? t.toFixed(1) : t.toFixed(2);
+  },
+  weeks(w) { return w >= 10 ? `${Math.round(w)}` : w.toFixed(1); },
+  m(v, d = 1) { return `${(+v).toFixed(d)}`; },
+  bay(sx, sz) { return `${sx.toFixed(1)} × ${sz.toFixed(1)}`; },
+  pct(a, b) { return Math.round(((a - b) / b) * 100); },
+  int(v) { return Math.round(v).toLocaleString('en-CA'); },
+};
+
+const titleCase = (s) => String(s || '').replace(/\b\w/g, (c) => c.toUpperCase());
+
+
+// ============================================================================
+// StructureViewer: three.js scene per option, instanced members, drafting
+// gridlines, build animation, single and split-screen compare rendering.
+// Expects THREE, OrbitControls, CSS2DRenderer, CSS2DObject, RoomEnvironment,
+// gsap and buildGeometry in scope.
+// ============================================================================
+
+const LOOK = {
+  timber: {
+    column: '#c58b4b', beam: '#cc9556', girder: '#c18848', rafter: '#c58b4b', purlin: '#d3a46a',
+    slab: '#e3c393', roofslab: '#e3c393', roofdeck: '#d9bd94', wall: '#d8c09b', rough: 0.62, metal: 0,
+  },
+  concrete: {
+    column: '#979c9f', beam: '#a0a4a6', girder: '#9a9fa2', rafter: '#979c9f', purlin: '#a0a4a6',
+    slab: '#b6b9ba', roofslab: '#b6b9ba', roofdeck: '#8e9397', wall: '#b9bcbc', rough: 0.93, metal: 0,
+  },
+  steel: {
+    column: '#b5543d', beam: '#bb5c44', girder: '#ad4f39', infill: '#c4684f', brace: '#8e3c2c', rafter: '#b5543d', purlin: '#c4684f',
+    slab: '#c6c9cb', roofslab: '#a3abb2', roofdeck: '#808b94', wall: '#9ea9b3', rough: 0.42, metal: 0.35,
+  },
+};
+const SHARED_LOOK = { footing: '#9da1a4', glass: '#a8c5d6', door: '#3a3f45' };
+const STRUCT_ROLES = ['footing', 'column', 'beam', 'girder', 'infill', 'brace', 'slab', 'roofslab', 'rafter', 'purlin', 'roofdeck'];
+const ENV_ROLES = ['wall', 'glass', 'door'];
+const HOVER = new THREE.Color('#ffd27a');
+const WHITE = new THREE.Color('#ffffff');
+
+const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+
+// ---- shared unit geometries: length along X, depth along Y, width along Z
+const UNIT_BOX = new THREE.BoxGeometry(1, 1, 1);
+const UNIT_I = (() => {
+  const s = new THREE.Shape();
+  const tf = 0.11, tw = 0.14; // flange and web thickness (unit space)
+  s.moveTo(-0.5, -0.5); s.lineTo(0.5, -0.5); s.lineTo(0.5, -0.5 + tf); s.lineTo(tw / 2, -0.5 + tf);
+  s.lineTo(tw / 2, 0.5 - tf); s.lineTo(0.5, 0.5 - tf); s.lineTo(0.5, 0.5); s.lineTo(-0.5, 0.5);
+  s.lineTo(-0.5, 0.5 - tf); s.lineTo(-tw / 2, 0.5 - tf); s.lineTo(-tw / 2, -0.5 + tf); s.lineTo(-0.5, -0.5 + tf); s.closePath();
+  const g = new THREE.ExtrudeGeometry(s, { depth: 1, bevelEnabled: false });
+  g.rotateY(-Math.PI / 2);
+  g.translate(0.5, 0, 0);
+  g.computeVertexNormals();
+  return g;
+})();
+
+// ---- reusable math scratch
+const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _dir = new THREE.Vector3(), _ref = new THREE.Vector3();
+const _ya = new THREE.Vector3(), _za = new THREE.Vector3(), _p = new THREE.Vector3(), _s = new THREE.Vector3();
+const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _rq = new THREE.Quaternion();
+const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
+
+function itemMatrix(it, p, out) {
+  if (p <= 0.0001) return out.copy(ZERO);
+  _a.fromArray(it.a); _b.fromArray(it.b);
+  _dir.subVectors(_b, _a);
+  const len = _dir.length();
+  _dir.divideScalar(len || 1);
+  if (Math.abs(_dir.y) > 0.99) _ref.set(1, 0, 0); else _ref.set(0, 1, 0);
+  _za.crossVectors(_dir, _ref).normalize();
+  _ya.crossVectors(_za, _dir).normalize();
+  _m.makeBasis(_dir, _ya, _za);
+  _q.setFromRotationMatrix(_m);
+  if (it.roll) { _rq.setFromAxisAngle(_dir, it.roll); _q.premultiply(_rq); }
+  const L = Math.max(1e-4, len * p);
+  _p.copy(_a).addScaledVector(_dir, L / 2);
+  _s.set(L, it.d, it.w);
+  return out.compose(_p, _q, _s);
+}
+
+// ---- ground grid shader with distance fade (colours come from CSS tokens)
+function makeGroundGrid() {
+  const mat = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, toneMapped: false,
+    uniforms: {
+      uMinor: { value: new THREE.Color('#9aa5a1') }, uMajor: { value: new THREE.Color('#6e7a76') },
+      uFade: { value: 60 }, uOpacity: { value: 0.55 }, uStep: { value: 1 },
+    },
+    vertexShader: `varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+    fragmentShader: `
+      uniform vec3 uMinor; uniform vec3 uMajor; uniform float uFade; uniform float uOpacity; uniform float uStep;
+      varying vec3 vW;
+      float line(vec2 p, float s){ vec2 q = p / s; vec2 g = abs(fract(q - 0.5) - 0.5) / fwidth(q); return 1.0 - min(min(g.x, g.y), 1.0); }
+      void main(){
+        float d = length(vW.xz);
+        float fade = 1.0 - smoothstep(uFade * 0.25, uFade, d);
+        float mi = line(vW.xz, uStep) * 0.45;
+        float ma = line(vW.xz, uStep * 5.0);
+        vec3 c = mix(uMinor, uMajor, ma);
+        gl_FragColor = vec4(c, max(mi, ma * 0.85) * fade * uOpacity);
+        #include <colorspace_fragment>
+      }`,
+  });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.y = 0.002;
+  mesh.renderOrder = -1;
+  return mesh;
+}
+
+class StructureViewer {
+  constructor(host, { onBuilt, onInteract, onHoverChange } = {}) {
+    this.host = host;
+    this.onBuilt = onBuilt || (() => {});
+    this.onInteract = onInteract || (() => {});
+    this.onHoverChange = onHoverChange || (() => {});
+    this.entries = new Map(); // option id -> entry
+    this.activeId = null;
+    this.compareIds = [];
+    this.display = { envelope: false, labels: true };
+    this.theme = {};
+    this.dirty = true;
+    this.anims = 0;
+    this.insets = { top: 0, right: 0, bottom: 0, left: 0 };
+    this.reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    const r = (this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' }));
+    r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    r.setClearColor(0x000000, 0);
+    r.shadowMap.enabled = true;
+    r.shadowMap.type = THREE.PCFShadowMap;
+    r.toneMapping = THREE.NeutralToneMapping;
+    r.toneMappingExposure = 1.0;
+    r.domElement.className = 'vw-canvas';
+    host.appendChild(r.domElement);
+
+    this.labels = new CSS2DRenderer();
+    this.labels.domElement.className = 'vw-labels';
+    host.appendChild(this.labels.domElement);
+
+    this.tip = document.createElement('div');
+    this.tip.className = 'vw-tip';
+    this.tip.hidden = true;
+    host.appendChild(this.tip);
+
+    const pm = new THREE.PMREMGenerator(r);
+    this.env = pm.fromScene(new RoomEnvironment(), 0.04).texture;
+    pm.dispose();
+
+    this.camera = new THREE.PerspectiveCamera(32, 1, 0.1, 2000);
+    this.camera.position.set(20, 14, 26);
+    const c = (this.controls = new OrbitControls(this.camera, r.domElement));
+    c.enableDamping = true;
+    c.dampingFactor = 0.08;
+    c.maxPolarAngle = Math.PI / 2 - 0.03;
+    c.screenSpacePanning = true;
+    c.addEventListener('start', () => { this.onInteract('orbit'); this.hideTip(); });
+    c.addEventListener('change', () => (this.dirty = true));
+
+    this.materials = new Map();
+    this.raycaster = new THREE.Raycaster();
+    this.pointer = { x: 0, y: 0, inside: false, down: false };
+    this.hover = null;
+
+    const el = r.domElement;
+    el.addEventListener('pointermove', (e) => this.onPointer(e));
+    el.addEventListener('pointerleave', () => { this.pointer.inside = false; this.setHover(null); });
+    el.addEventListener('pointerdown', () => { this.pointer.down = true; this.setHover(null); });
+    window.addEventListener('pointerup', () => (this.pointer.down = false));
+
+    this.ro = new ResizeObserver(() => this.resize());
+    this.ro.observe(host);
+    this.resize();
+    this.loop = this.loop.bind(this);
+    this.raf = requestAnimationFrame(this.loop);
+  }
+
+  // ------------------------------------------------------------ materials --
+  mat(material, role) {
+    const key = `${material}:${role}`;
+    if (this.materials.has(key)) return this.materials.get(key);
+    const look = LOOK[material];
+    const color = look[role] || SHARED_LOOK[role] || look.column;
+    let m;
+    if (role === 'glass') {
+      m = new THREE.MeshStandardMaterial({ color, roughness: 0.08, metalness: 0.1, transparent: true, opacity: 0.5, envMapIntensity: 1.4 });
+    } else if (role === 'door') {
+      m = new THREE.MeshStandardMaterial({ color, roughness: 0.5 });
+    } else if (role === 'footing') {
+      m = new THREE.MeshStandardMaterial({ color, roughness: 0.95 });
+    } else {
+      const isMetal = material === 'steel' && !['slab', 'roofslab', 'wall'].includes(role);
+      m = new THREE.MeshStandardMaterial({
+        color, roughness: role === 'wall' ? 0.8 : look.rough,
+        metalness: isMetal ? look.metal : 0, envMapIntensity: 0.9,
+      });
+    }
+    this.materials.set(key, m);
+    this.applyDisplayToMaterial(role, m);
+    return m;
+  }
+
+  applyDisplayToMaterial(role, m) {
+    const see = !this.display.envelope;
+    if (role === 'roofslab' || role === 'roofdeck') {
+      m.transparent = see;
+      m.opacity = see ? (role === 'roofdeck' ? 0.32 : 0.42) : 1;
+      m.depthWrite = !see;
+      m.needsUpdate = true;
+    }
+  }
+
+  // ---------------------------------------------------------------- theme --
+  setTheme(t) {
+    this.theme = t;
+    for (const e of this.entries.values()) this.themeEntry(e);
+    this.dirty = true;
+  }
+
+  themeEntry(e) {
+    const t = this.theme;
+    if (!t.gridMinor) return;
+    const u = e.ground.material.uniforms;
+    u.uMinor.value.set(t.gridMinor);
+    u.uMajor.value.set(t.gridMajor);
+    u.uOpacity.value = t.dark ? 0.5 : 0.6;
+    e.shadow.material.opacity = t.dark ? 0.5 : 0.16;
+    e.gridLineMat.color.set(t.gridline);
+    e.dimLineMat.color.set(t.ink3);
+    e.footMat.color.set(t.gridline);
+    e.hemi.intensity = t.dark ? 0.9 : 1.15;
+    e.sun.intensity = t.dark ? 2.1 : 2.4;
+  }
+
+  // ----------------------------------------------------------------- sync --
+  sync(options, { activeId, compareIds, display }) {
+    const ids = new Set(options.map((o) => o.id));
+    for (const [id, e] of this.entries) if (!ids.has(id)) this.disposeEntry(id, e);
+    for (const o of options) {
+      if (!o.result) continue;
+      let e = this.entries.get(o.id);
+      if (!e || e.version !== o.version) {
+        if (e) this.disposeEntry(o.id, e);
+        e = this.buildEntry(o);
+        this.entries.set(o.id, e);
+        e.stage = null;
+      }
+      if (e.stage !== o.stage) this.setStage(o.id, e, o.stage, o.animate);
+    }
+    const displayChanged = display && (display.envelope !== this.display.envelope || display.labels !== this.display.labels);
+    if (display) this.display = { ...display };
+    if (displayChanged) {
+      for (const [k, m] of this.materials) this.applyDisplayToMaterial(k.split(':')[1], m);
+      for (const e of this.entries.values()) this.applyDisplay(e);
+    }
+    const prevKey = `${this.activeId}|${this.compareIds.join(',')}`;
+    if (this.activeId !== activeId) this.detachLabels(this.activeId);
+    this.activeId = activeId;
+    this.compareIds = compareIds || [];
+    this.labels.domElement.hidden = this.compareIds.length > 1;
+    const nextKey = `${this.activeId}|${this.compareIds.join(',')}`;
+    if (prevKey !== nextKey || !this.framed) this.frame(false);
+    this.dirty = true;
+  }
+
+  detachLabels(id) {
+    const e = this.entries.get(id);
+    if (!e) return;
+    e.scene.traverse((o) => { if (o.isCSS2DObject && o.element.parentNode) o.element.remove(); });
+  }
+
+  // ---------------------------------------------------------------- build --
+  buildEntry(o) {
+    const geo = buildGeometry(o.result);
+    const { L, W, top } = geo.bounds;
+    const ext = Math.max(L, W, top * 1.2);
+    const scene = new THREE.Scene();
+    scene.environment = this.env;
+    scene.environmentIntensity = 0.55;
+
+    const hemi = new THREE.HemisphereLight('#ffffff', '#b9b2a6', 1.15);
+    scene.add(hemi);
+    const sun = new THREE.DirectionalLight('#fff7ee', 2.4);
+    sun.position.set(-0.55 * ext - 6, 1.1 * ext + 10, 0.75 * ext + 6);
+    sun.castShadow = true;
+    const sc = sun.shadow.camera;
+    const half = Math.max(L, W) * 0.75 + top * 0.6 + 4;
+    sc.left = -half; sc.right = half; sc.top = half; sc.bottom = -half;
+    sc.near = 0.5; sc.far = ext * 4 + 60;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.bias = -0.0004;
+    sun.shadow.normalBias = 0.03;
+    sun.shadow.radius = 4;
+    scene.add(sun);
+
+    const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShadowMaterial({ opacity: 0.16 }));
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.scale.setScalar(ext * 6 + 40);
+    shadow.receiveShadow = true;
+    scene.add(shadow);
+    const ground = makeGroundGrid();
+    ground.scale.setScalar(ext * 8 + 60);
+    ground.material.uniforms.uFade.value = ext * 2.2 + 18;
+    ground.material.uniforms.uStep.value = ext > 60 ? 2 : 1;
+    scene.add(ground);
+
+    // Members
+    const building = new THREE.Group();
+    const parts = [];
+    for (const role of [...STRUCT_ROLES, ...ENV_ROLES]) {
+      const items = geo.parts[role];
+      if (!items?.length) continue;
+      const shape = items[0].shape === 'I' ? UNIT_I : UNIT_BOX;
+      const mesh = new THREE.InstancedMesh(shape, this.mat(o.material, role), items.length);
+      mesh.castShadow = !['glass', 'roofdeck', 'roofslab'].includes(role) || this.display.envelope;
+      mesh.receiveShadow = role !== 'glass';
+      mesh.frustumCulled = false;
+      mesh.userData = { role, items };
+      for (let i = 0; i < items.length; i++) mesh.setColorAt(i, WHITE);
+      mesh.instanceColor.needsUpdate = true;
+      building.add(mesh);
+      parts.push({ role, mesh, items, env: ENV_ROLES.includes(role) });
+    }
+    // Gable end walls
+    const gableEnds = new THREE.Group();
+    if (geo.bounds.gable) {
+      const off = geo.bounds.off;
+      const s = new THREE.Shape();
+      s.moveTo(-W / 2 - off, 0); s.lineTo(W / 2 + off, 0); s.lineTo(0, geo.bounds.rise + off * 0.36 + 0.1); s.closePath();
+      const g = new THREE.ExtrudeGeometry(s, { depth: 0.12, bevelEnabled: false });
+      g.rotateY(Math.PI / 2);
+      for (const sx of [-1, 1]) {
+        const m = new THREE.Mesh(g, this.mat(o.material, 'wall'));
+        m.position.set(sx * (L / 2 + off) - 0.06, top - geo.bounds.rise, 0);
+        m.castShadow = true;
+        gableEnds.add(m);
+      }
+    }
+    building.add(gableEnds);
+    scene.add(building);
+
+    // Drafting layer: footprint, gridlines, bubbles, dimension strings
+    const draft = new THREE.Group();
+    const k = THREE.MathUtils.clamp(Math.max(L, W) / 26, 0.7, 2.6);
+    const gridLineMat = new THREE.LineDashedMaterial({ color: '#1e4c8f', dashSize: 0.45 * k, gapSize: 0.22 * k, transparent: true, opacity: 0.75 });
+    const dimLineMat = new THREE.LineBasicMaterial({ color: '#7c8589', transparent: true, opacity: 0.9 });
+    const footMat = new THREE.LineDashedMaterial({ color: '#1e4c8f', dashSize: 0.3 * k, gapSize: 0.18 * k, transparent: true, opacity: 0.9 });
+    const y = 0.03;
+    const off = geo.bounds.off;
+    // Annotate the two sides nearest the default camera (front +z, right +x)
+    const zFront = W / 2 + off, xRight = L / 2 + off;
+    const dim1 = 1.5 * k, dim2 = 2.9 * k, bub = 4.6 * k;
+
+    const lineGeo = (pts) => new THREE.BufferGeometry().setFromPoints(pts.map((p) => new THREE.Vector3(...p)));
+    const fp = new THREE.LineLoop(lineGeo([[-L / 2, y, -W / 2], [L / 2, y, -W / 2], [L / 2, y, W / 2], [-L / 2, y, W / 2]]), footMat);
+    fp.computeLineDistances();
+    const fpFill = new THREE.Mesh(new THREE.PlaneGeometry(L, W), new THREE.MeshBasicMaterial({ color: '#1e4c8f', transparent: true, opacity: 0.07, depthWrite: false }));
+    fpFill.rotation.x = -Math.PI / 2; fpFill.position.y = 0.01;
+    const footprint = new THREE.Group();
+    footprint.add(fp, fpFill);
+    draft.add(footprint);
+
+    const gridGroup = new THREE.Group();
+    const label = (cls, text, pos) => {
+      const d = document.createElement('div');
+      d.className = cls;
+      d.textContent = text;
+      const obj = new CSS2DObject(d);
+      obj.position.set(...pos);
+      return obj;
+    };
+    geo.grid.xs.forEach((x, i) => {
+      const l = new THREE.Line(lineGeo([[x, y, -W / 2 - off - 0.8 * k], [x, y, zFront + bub - 0.45 * k]]), gridLineMat);
+      l.computeLineDistances();
+      gridGroup.add(l, label('gl-bubble', geo.grid.xLabels[i], [x, y, zFront + bub]));
+    });
+    geo.grid.zs.forEach((z, j) => {
+      const l = new THREE.Line(lineGeo([[-L / 2 - off - 0.8 * k, y, z], [xRight + bub - 0.45 * k, y, z]]), gridLineMat);
+      l.computeLineDistances();
+      gridGroup.add(l, label('gl-bubble', geo.grid.zLabels[j], [xRight + bub, y, z]));
+    });
+    // Dimension strings with architectural ticks (millimetres, as on drawings)
+    const segs = [];
+    const tick = 0.22 * k;
+    const xs = geo.grid.xs, zs = geo.grid.zs;
+    const zd1 = zFront + dim1, zd2 = zFront + dim2, xd1 = xRight + dim1, xd2 = xRight + dim2;
+    segs.push([xs[0], y, zd1], [xs[xs.length - 1], y, zd1], [-L / 2, y, zd2], [L / 2, y, zd2]);
+    segs.push([xd1, y, zs[0]], [xd1, y, zs[zs.length - 1]], [xd2, y, -W / 2], [xd2, y, W / 2]);
+    for (const x of xs) segs.push([x - tick, y, zd1 + tick], [x + tick, y, zd1 - tick]);
+    for (const x of [-L / 2, L / 2]) segs.push([x - tick, y, zd2 + tick], [x + tick, y, zd2 - tick], [x, y, zFront + 0.25 * k], [x, y, zd2 + 0.3 * k]);
+    for (const z of zs) segs.push([xd1 - tick, y, z + tick], [xd1 + tick, y, z - tick]);
+    for (const z of [-W / 2, W / 2]) segs.push([xd2 - tick, y, z + tick], [xd2 + tick, y, z - tick], [xRight + 0.25 * k, y, z], [xd2 + 0.3 * k, y, z]);
+    gridGroup.add(new THREE.LineSegments(lineGeo(segs), dimLineMat));
+    const mmTxt = (v) => Math.round(v * 1000).toLocaleString('en-CA').replace(/,/g, ' ');
+    // Overall dimensions sit between gridlines so they never land on a bubble line
+    const mid = (a) => (a.length % 2 === 0 ? 0 : (a[(a.length - 1) / 2] + a[(a.length + 1) / 2]) / 2);
+    if (xs.length > 2) for (let i = 0; i < xs.length - 1; i++) gridGroup.add(label('gl-dim', mmTxt(xs[i + 1] - xs[i]), [(xs[i] + xs[i + 1]) / 2, y, zd1]));
+    gridGroup.add(label('gl-dim gl-dim--total', mmTxt(L), [xs.length > 2 ? mid(xs) : 0, y, zd2]));
+    if (zs.length > 2) for (let j = 0; j < zs.length - 1; j++) gridGroup.add(label('gl-dim', mmTxt(zs[j + 1] - zs[j]), [xd1, y, (zs[j] + zs[j + 1]) / 2]));
+    gridGroup.add(label('gl-dim gl-dim--total', mmTxt(W), [xd2, y, zs.length > 2 ? mid(zs) : 0]));
+    draft.add(gridGroup);
+    scene.add(draft);
+
+    const e = {
+      id: o.id, version: o.version, material: o.material, scene, building, parts, gableEnds, draft, footprint, gridGroup,
+      ground, shadow, hemi, sun, gridLineMat, dimLineMat, footMat, geo, bounds: geo.bounds, u: 1, stage: null,
+      radius: 0.5 * Math.hypot(L + 2 * dim2, W + 2 * dim2, top) + 1,
+    };
+    this.themeEntry(e);
+    this.applyDisplay(e);
+    this.setProgress(e, 1);
+    return e;
+  }
+
+  applyDisplay(e) {
+    const env = this.display.envelope;
+    for (const p of e.parts) {
+      if (p.env) p.mesh.visible = env && e.stage !== 'footprint' && e.stage !== 'grid';
+      if (p.role === 'roofslab' || p.role === 'roofdeck') p.mesh.castShadow = env;
+    }
+    e.gableEnds.visible = env && (e.stage === 'ready' || e.stage === 'build');
+    e.gridGroup.visible = this.display.labels && e.stage !== 'footprint';
+  }
+
+  setProgress(e, u) {
+    e.u = u;
+    const dur = THREE.MathUtils.clamp(0.22 / Math.sqrt(e.bounds.n), 0.07, 0.22);
+    for (const p of e.parts) {
+      if (p.env) {
+        for (let i = 0; i < p.items.length; i++) p.mesh.setMatrixAt(i, itemMatrix(p.items[i], 1, _m));
+      } else {
+        for (let i = 0; i < p.items.length; i++) {
+          const it = p.items[i];
+          const t = THREE.MathUtils.clamp((u * (1 + dur) - it.delay) / dur, 0, 1);
+          p.mesh.setMatrixAt(i, itemMatrix(it, easeOut(t), _m));
+        }
+      }
+      p.mesh.instanceMatrix.needsUpdate = true;
+      p.mesh.computeBoundingSphere();
+    }
+    this.dirty = true;
+  }
+
+  setStage(id, e, stage, animate = true) {
+    e.stage = stage;
+    gsap.killTweensOf(e);
+    e.footprint.visible = stage === 'footprint' || stage === 'grid' || stage === 'build';
+    if (stage === 'footprint' || stage === 'grid') {
+      this.setProgress(e, 0);
+      if (!this.reduced) gsap.fromTo(e.footMat, { opacity: 0.25 }, { opacity: 0.95, duration: 0.6, yoyo: true, repeat: -1, onUpdate: () => (this.dirty = true) });
+    } else {
+      gsap.killTweensOf(e.footMat);
+      e.footMat.opacity = 0.9;
+    }
+    if (stage === 'build') {
+      const T = this.reduced || !animate ? 0.01 : THREE.MathUtils.clamp(1.3 + 0.18 * e.bounds.n, 1.4, 3.0);
+      this.setProgress(e, 0);
+      this.anims++;
+      const st = { u: 0 };
+      gsap.to(st, {
+        u: 1, duration: T, ease: 'none',
+        onUpdate: () => this.setProgress(e, st.u),
+        onComplete: () => { this.anims--; e.footprint.visible = false; this.setProgress(e, 1); this.onBuilt(id); },
+      });
+    } else if (stage === 'ready') {
+      e.footprint.visible = false;
+      this.setProgress(e, 1);
+    }
+    this.applyDisplay(e);
+    this.dirty = true;
+  }
+
+  disposeEntry(id, e) {
+    gsap.killTweensOf(e.footMat);
+    e.scene.traverse((o) => {
+      if (o.isCSS2DObject && o.element.parentNode) o.element.remove();
+      if (o.isInstancedMesh) o.dispose();
+      else if (o.geometry && o.geometry !== UNIT_BOX && o.geometry !== UNIT_I) o.geometry.dispose();
+      if (o.material && !Array.from(this.materials.values()).includes(o.material)) o.material.dispose?.();
+    });
+    this.entries.delete(id);
+    if (this.hover?.id === id) this.setHover(null);
+  }
+
+  // Overlays (inspector, metrics) cover part of the canvas. Shift the projection
+  // so the model is framed in the free area instead of behind the panels.
+  setInsets(ins) {
+    const k = (o) => `${o.top}|${o.right}|${o.bottom}|${o.left}`;
+    if (k(ins) === k(this.insets)) return;
+    this.insets = { ...ins };
+    if (this.framed && this.compareIds.length < 2) this.frame(true);
+    this.dirty = true;
+  }
+
+  applyOffset(v, single) {
+    const cam = this.camera;
+    if (!single) { cam.clearViewOffset(); return; }
+    const { left, right, top, bottom } = this.insets;
+    const dx = (right - left) / 2, dy = (bottom - top) / 2;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) cam.clearViewOffset();
+    else cam.setViewOffset(v.w, v.h, dx, dy, v.w, v.h);
+  }
+
+  // --------------------------------------------------------------- camera --
+  viewRects() {
+    const w = this.width, h = this.height;
+    const ids = this.compareIds.length > 1 ? this.compareIds : [this.activeId];
+    return compareRects(w, h, ids.length).map((r, i) => ({ ...r, id: ids[i] }));
+  }
+
+  frame(animate = true, view = this.view || 'iso') {
+    this.view = view;
+    if (this.camTween) { this.camTween.kill(); this.camTween = null; this.anims = Math.max(0, this.anims - 1); }
+    const ids = this.compareIds.length > 1 ? this.compareIds : [this.activeId];
+    const es = ids.map((id) => this.entries.get(id)).filter(Boolean);
+    if (!es.length) { this.framed = false; return; }
+    this.framed = true;
+    const radius = Math.max(...es.map((e) => e.radius));
+    const topY = Math.max(...es.map((e) => e.bounds.top));
+    const rects = this.viewRects();
+    const single = rects.length === 1;
+    const ins = single ? this.insets : { top: 0, right: 0, bottom: 0, left: 0 };
+    const r0 = rects[0];
+    const sw = Math.max(80, r0.w - ins.left - ins.right), sh = Math.max(80, r0.h - ins.top - ins.bottom);
+    const aspect = single ? sw / sh : Math.min(...rects.map((r) => r.w / Math.max(1, r.h)));
+    const vf0 = THREE.MathUtils.degToRad(this.camera.fov / 2);
+    const vf = single ? Math.atan(Math.tan(vf0) * (sh / Math.max(1, r0.h))) : vf0;
+    const hf = Math.atan(Math.tan(vf) * aspect);
+    const dist = (radius / Math.sin(Math.min(vf, hf))) * (single ? (aspect < 1.1 ? 1.0 : 0.86) : 0.95);
+    const dirs = {
+      iso: [Math.sin(0.68) * Math.cos(0.5), Math.sin(0.5), Math.cos(0.68) * Math.cos(0.5)],
+      top: [0, 1, 0.0008],
+      front: [0, 0.16, 1],
+      side: [1, 0.16, 0],
+    };
+    const d = new THREE.Vector3(...dirs[view]).normalize();
+    const target = new THREE.Vector3(0, view === 'top' ? 0 : topY * 0.32, 0);
+    const pos = target.clone().addScaledVector(d, dist);
+    this.controls.minDistance = radius * 0.4;
+    this.controls.maxDistance = dist * 3;
+    if (!animate || this.reduced) {
+      this.camera.position.copy(pos);
+      this.controls.target.copy(target);
+      this.controls.update();
+      this.dirty = true;
+      return;
+    }
+    this.anims++;
+    const from = { px: this.camera.position.x, py: this.camera.position.y, pz: this.camera.position.z, tx: this.controls.target.x, ty: this.controls.target.y, tz: this.controls.target.z };
+    this.camTween = gsap.to(from, {
+      px: pos.x, py: pos.y, pz: pos.z, tx: target.x, ty: target.y, tz: target.z, duration: 0.75, ease: 'power3.inOut',
+      onUpdate: () => {
+        this.camera.position.set(from.px, from.py, from.pz);
+        this.controls.target.set(from.tx, from.ty, from.tz);
+        this.dirty = true;
+      },
+      onComplete: () => { this.anims--; this.camTween = null; },
+    });
+  }
+
+  // ---------------------------------------------------------------- hover --
+  onPointer(e) {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    this.pointer.x = e.clientX - rect.left;
+    this.pointer.y = e.clientY - rect.top;
+    this.pointer.inside = true;
+    if (this.pointer.down || e.pointerType === 'touch') return;
+    if (!this.hoverQueued) {
+      this.hoverQueued = true;
+      requestAnimationFrame(() => { this.hoverQueued = false; this.pick(); });
+    }
+  }
+
+  pick() {
+    if (!this.pointer.inside) return;
+    const { x, y } = this.pointer;
+    const r = this.viewRects().find((v) => x >= v.x && x <= v.x + v.w && y >= v.y && y <= v.y + v.h);
+    const e = r && this.entries.get(r.id);
+    if (!e || e.stage !== 'ready') return this.setHover(null);
+    const ndc = new THREE.Vector2(((x - r.x) / r.w) * 2 - 1, -((y - r.y) / r.h) * 2 + 1);
+    this.camera.aspect = r.w / r.h;
+    this.applyOffset(r, this.viewRects().length === 1);
+    this.camera.updateProjectionMatrix();
+    this.raycaster.setFromCamera(ndc, this.camera);
+    const see = !this.display.envelope;
+    const meshes = e.parts.filter((p) => p.mesh.visible && (!p.env || !see) && !(see && (p.role === 'roofdeck' || p.role === 'roofslab'))).map((p) => p.mesh);
+    const hit = this.raycaster.intersectObjects(meshes, false)[0];
+    if (!hit) return this.setHover(null);
+    const items = hit.object.userData.items;
+    this.setHover({ id: e.id, mesh: hit.object, index: hit.instanceId, meta: items[hit.instanceId]?.meta });
+  }
+
+  setHover(h) {
+    const prev = this.hover;
+    if (prev && (!h || prev.mesh !== h.mesh || prev.index !== h.index)) {
+      if (prev.mesh.instanceColor) { prev.mesh.setColorAt(prev.index, WHITE); prev.mesh.instanceColor.needsUpdate = true; }
+    }
+    this.hover = h;
+    if (h) {
+      h.mesh.setColorAt(h.index, HOVER);
+      h.mesh.instanceColor.needsUpdate = true;
+      this.tip.hidden = false;
+      this.tip.innerHTML = '';
+      const t = document.createElement('strong'); t.textContent = h.meta?.title || '';
+      const s = document.createElement('span'); s.textContent = h.meta?.sub || '';
+      this.tip.append(t, s);
+      const tx = Math.min(this.pointer.x + 14, this.width - 240);
+      this.tip.style.transform = `translate(${Math.max(8, tx)}px, ${Math.max(8, this.pointer.y + 16)}px)`;
+    } else this.hideTip();
+    this.onHoverChange(h?.meta || null);
+    this.dirty = true;
+  }
+
+  hideTip() { this.tip.hidden = true; }
+
+  // --------------------------------------------------------------- render --
+  resize() {
+    const w = this.host.clientWidth, h = this.host.clientHeight;
+    if (!w || !h) return;
+    this.width = w; this.height = h;
+    this.renderer.setSize(w, h, false);
+    this.renderer.domElement.style.width = `${w}px`;
+    this.renderer.domElement.style.height = `${h}px`;
+    this.labels.setSize(w, h);
+    this.dirty = true;
+  }
+
+  loop() {
+    this.raf = requestAnimationFrame(this.loop);
+    const moved = this.controls.update();
+    if (this.dirty || moved || this.anims > 0) {
+      this.render();
+      this.dirty = false;
+    }
+  }
+
+  render() {
+    const r = this.renderer;
+    const rects = this.viewRects();
+    const single = rects.length === 1;
+    r.setScissorTest(!single);
+    for (const v of rects) {
+      const e = this.entries.get(v.id);
+      r.setViewport(v.x, this.height - v.y - v.h, v.w, v.h);
+      r.setScissor(v.x, this.height - v.y - v.h, v.w, v.h);
+      if (!e) { r.clear(); continue; }
+      this.camera.aspect = v.w / v.h;
+      this.applyOffset(v, single);
+      this.camera.updateProjectionMatrix();
+      r.render(e.scene, this.camera);
+      if (single && this.display.labels) this.labels.render(e.scene, this.camera);
+    }
+    r.setScissorTest(false);
+  }
+
+  snapshot() {
+    this.render();
+    return this.renderer.domElement.toDataURL('image/png');
+  }
+
+  dispose() {
+    cancelAnimationFrame(this.raf);
+    this.ro.disconnect();
+    for (const [id, e] of this.entries) this.disposeEntry(id, e);
+    for (const m of this.materials.values()) m.dispose();
+    this.controls.dispose();
+    this.renderer.dispose();
+    this.host.innerHTML = '';
+  }
+}
+
+// Shared by the viewer and the React overlays so labels line up with viewports.
+function compareRects(w, h, n) {
+  const gap = 2;
+  if (n <= 1) return [{ x: 0, y: 0, w, h }];
+  const portrait = w < 700 && h > w * 0.9;
+  if (portrait) {
+    const rh = (h - gap * (n - 1)) / n;
+    return Array.from({ length: n }, (_, i) => ({ x: 0, y: Math.round(i * (rh + gap)), w, h: Math.round(rh) }));
+  }
+  if (n === 4 || (n > 3 && w / h < 2.2)) {
+    const cols = Math.ceil(n / 2), rw = (w - gap * (cols - 1)) / cols, rh = (h - gap) / 2;
+    return Array.from({ length: n }, (_, i) => ({ x: Math.round((i % cols) * (rw + gap)), y: Math.round(Math.floor(i / cols) * (rh + gap)), w: Math.round(rw), h: Math.round(rh) }));
+  }
+  const rw = (w - gap * (n - 1)) / n;
+  return Array.from({ length: n }, (_, i) => ({ x: Math.round(i * (rw + gap)), y: 0, w: Math.round(rw), h }));
+}
+
+
+// ============================================================================
+// Structure Studio app (React 18 + htm, no build step).
+// The "agent" here is a local script that calls the engine like tools would.
+// Swapping it for a real orchestrator only changes createAgent().
+// ============================================================================
+
+const { useState, useEffect, useRef, useReducer, useMemo, useCallback, useLayoutEffect } = React;
+const html = htm.bind(React.createElement);
+const REDUCED = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const wait = (ms) => new Promise((r) => setTimeout(r, REDUCED ? Math.min(ms, 60) : ms));
+let _uid = 0;
+const uid = (p) => `${p}${++_uid}`;
+const LETTERS = 'ABCDEFGH';
+const MAX_OPTIONS = 6;
+
+const TYPE_DEFAULTS = {
+  shed: { storeyHeight: 2.7, roof: 'gable' }, garage: { storeyHeight: 3, roof: 'gable' }, cabin: { storeyHeight: 2.7, roof: 'gable' },
+  barn: { storeyHeight: 5, roof: 'gable' }, house: { storeyHeight: 2.8, roof: 'gable' }, workshop: { storeyHeight: 4.5, roof: 'gable' },
+  warehouse: { storeyHeight: 7, roof: 'flat' }, hangar: { storeyHeight: 8, roof: 'flat' }, office: { storeyHeight: 3.8, roof: 'flat' },
+  school: { storeyHeight: 3.8, roof: 'flat' }, lab: { storeyHeight: 4.2, roof: 'flat' }, library: { storeyHeight: 4.2, roof: 'flat' },
+  gym: { storeyHeight: 7, roof: 'flat' }, pavilion: { storeyHeight: 4, roof: 'gable' }, studio: { storeyHeight: 4, roof: 'gable' },
+};
+const typeDefaults = (t) => TYPE_DEFAULTS[t] || { storeyHeight: 3.6, roof: 'flat' };
+
+// ------------------------------------------------------------- helpers ----
+const matShort = (k) => MATERIALS[k].short;
+const optLabel = (o) => `${o.letter} ${matShort(o.material)}`;
+const storeys = (n) => `${n} ${n === 1 ? 'storey' : 'storeys'}`;
+const describeSpec = (s) => `${fmt.m(s.length)} × ${fmt.m(s.width)} m, ${storeys(s.floors)}, ${fmt.m(s.storeyHeight)} m ${s.floors > 1 ? 'floor to floor' : 'to the eaves'}, ${s.roof} roof`;
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const listJoin = (a) => (a.length <= 1 ? a.join('') : `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}`);
+
+function nextLetter(options) {
+  const used = options.map((o) => LETTERS.indexOf(o.letter));
+  const max = used.length ? Math.max(...used) : -1;
+  for (let i = max + 1; i < LETTERS.length; i++) return LETTERS[i];
+  return LETTERS.split('').find((l) => !options.some((o) => o.letter === l)) || 'Z';
+}
+
+function makeOption(letter, material, spec, priority, stage = 'ready') {
+  const result = computeOption(spec, material, priority);
+  return { id: uid('o'), letter, material, spec: result.spec, result, version: 1, stage, animate: true, fresh: true };
+}
+
+function withChange(o, patch = {}, material, priority) {
+  const m = material || o.material;
+  const spec = normalizeSpec({ ...o.spec, ...patch });
+  const result = computeOption(spec, m, priority);
+  return { ...o, material: m, spec: result.spec, result, version: o.version + 1 };
+}
+
+function memberCount(o) {
+  const g = buildGeometry(o.result).parts;
+  return ['footing', 'column', 'beam', 'girder', 'infill', 'brace', 'slab', 'roofslab', 'rafter', 'purlin', 'roofdeck'].reduce((s, k) => s + g[k].length, 0);
+}
+
+function recommendation(options, priority) {
+  if (options.length < 2) return null;
+  const order = rankOptions(options.map((o) => o.result), priority).map((i) => options[i]);
+  const [a, b] = order;
+  const P = PRIORITIES[priority].label.toLowerCase();
+  const ma = a.result.metrics, mb = b.result.metrics;
+  const diff = (x, y, more, less) => {
+    const p = fmt.pct(x, y);
+    return p === 0 ? `about the same ${more.split(' ').pop()}` : `${Math.abs(p)}% ${p > 0 ? more : less}`;
+  };
+  const carbonTxt = ma.carbon <= mb.carbon ? `${Math.abs(fmt.pct(ma.carbon, mb.carbon))}% less embodied carbon` : `${Math.abs(fmt.pct(ma.carbon, mb.carbon))}% more embodied carbon`;
+  const costTxt = diff(ma.cost, mb.cost, 'more to build', 'less to build');
+  const wk = ma.weeks - mb.weeks;
+  const schedTxt = Math.abs(wk) < 0.15 ? 'takes about as long' : `is ${Math.abs(wk).toFixed(1)} weeks ${wk < 0 ? 'faster' : 'slower'}`;
+  const basis = priority === 'balanced' ? 'on a balanced score of cost, carbon and schedule' : `for ${P}`;
+  return {
+    leadId: a.id, order: order.map((o) => o.id),
+    text: `Option ${optLabel(a)} ranks first ${basis}. Against ${optLabel(b)}, it has ${carbonTxt}, costs ${costTxt} and ${schedTxt}.`,
+  };
+}
+
+// ----------------------------------------------------------- state ------
+function exampleState() {
+  const spec = { type: 'workshop', length: 30, width: 12, storeyHeight: 4.5, floors: 1, roof: 'gable' };
+  const priority = 'carbon';
+  const mats = ['timber', 'concrete', 'steel'];
+  const options = mats.map((m, i) => ({ ...makeOption(LETTERS[i], m, spec, priority, i === 0 ? 'build' : 'ready'), fresh: false }));
+  const rec = recommendation(options, priority);
+  const brief = 'Single-storey workshop, 30 × 12 m, 4.5 m to the eaves, gable roof. Compare timber, concrete and steel. Lowest carbon matters most.';
+  return {
+    project: { name: 'Campus workshop', example: true },
+    priority,
+    options,
+    activeId: options[0].id,
+    compare: false,
+    display: { envelope: false, labels: true },
+    messages: [
+      { id: uid('m'), role: 'user', kind: 'text', text: brief },
+      { id: uid('m'), role: 'agent', kind: 'spec', spec: normalizeSpec(spec), materials: mats, priority, assumed: [], state: 'confirmed' },
+      {
+        id: uid('m'), role: 'agent', kind: 'trace', title: 'Generated 3 options', state: 'done', elapsed: 4.6, collapsed: true,
+        steps: traceStepsFor(options, true).map((s) => ({ ...s, status: 'done' })),
+      },
+      { id: uid('m'), role: 'agent', kind: 'result', optionIds: options.map((o) => o.id), title: '3 options ready', text: rec.text },
+    ],
+    busy: false, busyLabel: '',
+    ui: { report: false, inspector: !window.matchMedia('(max-width: 860px)').matches, panel: 'chat', walk: false },
+    walk: { generated: true, viewed: false, changed: false, added: false, managed: false },
+    toast: null,
+  };
+}
+
+function emptyProject(prev) {
+  return {
+    ...prev,
+    project: { name: 'Untitled project', example: false },
+    options: [], activeId: null, compare: false, priority: 'balanced',
+    messages: [{ id: uid('m'), role: 'agent', kind: 'welcome' }],
+    busy: false, busyLabel: '',
+    ui: { ...prev.ui, report: false },
+    walk: { generated: false, viewed: false, changed: false, added: false, managed: false },
+  };
+}
+
+function reducer(s, a) {
+  switch (a.type) {
+    case 'msg/add': return { ...s, messages: [...s.messages, { fresh: true, ...a.msg }] };
+    case 'msg/patch': return { ...s, messages: s.messages.map((m) => (m.id === a.id ? { ...m, ...(typeof a.patch === 'function' ? a.patch(m) : a.patch) } : m)) };
+    case 'opt/add': return { ...s, options: [...s.options, ...a.options], activeId: a.activate ?? s.activeId, compare: a.compare ?? s.compare };
+    case 'opt/set': return { ...s, options: s.options.map((o) => (o.id === a.id ? (typeof a.patch === 'function' ? a.patch(o) : { ...o, ...a.patch }) : o)) };
+    case 'opt/stageAll': return { ...s, options: s.options.map((o) => (a.ids.includes(o.id) ? { ...o, stage: a.stage, animate: a.animate ?? true } : o)) };
+    case 'opt/remove': {
+      const idx = s.options.findIndex((o) => o.id === a.id);
+      if (idx < 0) return s;
+      const removed = s.options[idx];
+      const options = s.options.filter((o) => o.id !== a.id);
+      const activeId = s.activeId === a.id ? (options[idx] || options[idx - 1] || options[0])?.id ?? null : s.activeId;
+      return { ...s, options, activeId, compare: options.length > 1 && s.compare, toast: { id: uid('t'), text: `Option ${removed.letter} deleted`, undo: { kind: 'option', option: { ...removed, stage: 'ready', fresh: true }, index: idx } } };
+    }
+    case 'opt/restore': {
+      const options = [...s.options];
+      options.splice(Math.min(a.index, options.length), 0, a.option);
+      return { ...s, options, activeId: a.option.id, toast: null };
+    }
+    case 'active': return { ...s, activeId: a.id, compare: a.keepCompare ? s.compare : s.compare };
+    case 'priority': return {
+      ...s, priority: a.value,
+      options: s.options.map((o) => ({ ...withChange(o, {}, o.material, a.value), stage: 'ready', animate: false })),
+    };
+    case 'compare': return { ...s, compare: a.value && s.options.length > 1 };
+    case 'display': return { ...s, display: { ...s.display, ...a.patch } };
+    case 'busy': return { ...s, busy: a.value, busyLabel: a.label ?? (a.value ? s.busyLabel : '') };
+    case 'busyLabel': return { ...s, busyLabel: a.label };
+    case 'project': return { ...s, project: { ...s.project, ...a.patch } };
+    case 'ui': return { ...s, ui: { ...s.ui, ...a.patch } };
+    case 'walk': return s.walk[a.key] ? s : { ...s, walk: { ...s.walk, [a.key]: true } };
+    case 'toast': return { ...s, toast: a.toast };
+    case 'reset': return { ...emptyProject(s), toast: { id: uid('t'), text: 'Started a new project', undo: { kind: 'project', snapshot: s } } };
+    case 'restoreProject': return { ...a.snapshot, toast: null, ui: { ...a.snapshot.ui, report: false } };
+    default: return s;
+  }
+}
+
+// ------------------------------------------------------------- agent -----
+function traceStepsFor(opts, multi) {
+  const s0 = opts[0].spec;
+  const studyDetail = opts.length > 1
+    ? opts.map((o) => `${matShort(o.material)} ${fmt.bay(o.result.grid.sx, o.result.grid.sz)} m`).join(', ')
+    : `Tried ${plural(opts[0].result.study.length, 'layout')}, kept ${fmt.bay(opts[0].result.grid.sx, opts[0].result.grid.sz)} m bays`;
+  const steps = [
+    { key: 'footprint', label: 'Lay out the footprint', tool: 'place_footprint', detail: describeSpec(s0) },
+    { key: 'bays', label: 'Iterate bay layouts', tool: 'study_bays', detail: studyDetail },
+    { key: 'size', label: 'Size members', tool: 'size_members', detail: opts.map((o) => `${matShort(o.material)} columns ${o.result.sections.column.name}`).join(', ') },
+    { key: 'estimate', label: 'Estimate cost, carbon and schedule', tool: 'estimate_metrics', detail: 'Synthetic factors, version 0.1' },
+    { key: 'build', label: opts.length > 1 ? 'Build 3D models' : 'Build 3D model', tool: 'build_geometry', detail: `${fmt.int(opts.reduce((n, o) => n + memberCount(o), 0))} members` },
+  ];
+  if (multi) steps.push({ key: 'rank', label: 'Rank options', tool: 'rank_options', detail: '' });
+  return steps;
+}
+
+function createAgent(get, dispatch, hooks) {
+  const builtWaiters = new Map();
+  let pending = null; // partial brief waiting for a footprint
+
+  const say = (text, extra = {}) => dispatch({ type: 'msg/add', msg: { id: uid('m'), role: 'agent', kind: 'text', text, ...extra } });
+
+  const waitBuilt = (id) => new Promise((resolve) => {
+    builtWaiters.set(id, resolve);
+    setTimeout(() => { if (builtWaiters.get(id) === resolve) { builtWaiters.delete(id); dispatch({ type: 'opt/stageAll', ids: [id], stage: 'ready' }); resolve(); } }, 6000);
+  });
+
+  async function runTrace(title, steps) {
+    const id = uid('m');
+    const t0 = performance.now();
+    dispatch({ type: 'msg/add', msg: { id, role: 'agent', kind: 'trace', title, state: 'running', steps: steps.map(({ run, ms, ...s }) => ({ ...s, status: 'pending', detail: '' })) } });
+    for (let i = 0; i < steps.length; i++) {
+      const st = steps[i];
+      dispatch({ type: 'msg/patch', id, patch: (m) => ({ steps: m.steps.map((x, j) => (j === i ? { ...x, status: 'running' } : x)) }) });
+      dispatch({ type: 'busyLabel', label: st.label });
+      await wait(st.ms ?? 450);
+      if (st.run) await st.run();
+      const detail = typeof st.detail === 'function' ? st.detail() : st.detail;
+      dispatch({ type: 'msg/patch', id, patch: (m) => ({ steps: m.steps.map((x, j) => (j === i ? { ...x, status: 'done', detail } : x)) }) });
+    }
+    const elapsed = (performance.now() - t0) / 1000;
+    dispatch({ type: 'msg/patch', id, patch: { state: 'done', elapsed, title: title.replace(/^Generating/, 'Generated').replace(/^Updating/, 'Updated').replace(/^Adding/, 'Added') } });
+    await wait(260);
+    dispatch({ type: 'msg/patch', id, patch: { collapsed: true } });
+    return id;
+  }
+
+  async function generate(specIn, materials, priority, { added = false } = {}) {
+    const st = get();
+    const room = MAX_OPTIONS - st.options.length;
+    if (room <= 0) return say(`You have ${MAX_OPTIONS} options open, which is the limit for now. Delete one to make room.`);
+    materials = materials.slice(0, room);
+    dispatch({ type: 'busy', value: true, label: 'Starting' });
+    hooks.showModel();
+    const spec = normalizeSpec(specIn);
+    let letterBase = [...st.options];
+    const opts = materials.map((m) => {
+      const o = makeOption(nextLetter(letterBase), m, spec, priority, 'footprint');
+      letterBase = [...letterBase, o];
+      return o;
+    });
+    const ids = opts.map((o) => o.id);
+    dispatch({ type: 'opt/add', options: opts, activate: ids[0], compare: false });
+    const all = [...st.options, ...opts];
+    const multi = all.length > 1;
+    const base = traceStepsFor(opts, multi);
+    const steps = base.map((s) => ({ ...s, ms: { footprint: 420, bays: 900, size: 600, estimate: 520, build: 120, rank: 420 }[s.key] }));
+    steps[1].run = async () => dispatch({ type: 'opt/stageAll', ids, stage: 'grid' });
+    steps[4].run = async () => { dispatch({ type: 'opt/stageAll', ids, stage: 'build', animate: true }); await Promise.all(ids.map(waitBuilt)); };
+    let rec = null;
+    if (multi) {
+      rec = recommendation(all, priority);
+      const lead = all.find((o) => o.id === rec.leadId);
+      steps[5].detail = `${PRIORITIES[priority].label}: ${optLabel(lead)} ranks first`;
+    }
+    const title = opts.length > 1 ? `Generating ${opts.length} options` : added ? `Adding option ${opts[0].letter}` : `Generating option ${opts[0].letter}`;
+    await runTrace(title, steps);
+    const kept = st.options.length && added ? ` Option${st.options.length > 1 ? 's' : ''} ${listJoin(st.options.map((o) => o.letter))} ${st.options.length > 1 ? 'are' : 'is'} still in ${st.options.length > 1 ? 'their tabs' : 'its tab'}.` : '';
+    dispatch({
+      type: 'msg/add',
+      msg: {
+        id: uid('m'), role: 'agent', kind: 'result', optionIds: ids,
+        title: opts.length > 1 ? `${opts.length} options ready` : `Option ${optLabel(opts[0])} ready`,
+        text: (rec ? rec.text : `${MATERIALS[opts[0].material].system}, on a ${fmt.bay(opts[0].result.grid.sx, opts[0].result.grid.sz)} m grid.`) + kept,
+      },
+    });
+    dispatch({ type: 'walk', key: 'generated' });
+    if (added) dispatch({ type: 'walk', key: 'added' });
+    dispatch({ type: 'busy', value: false });
+  }
+
+  async function change(optionId, patch, material, source = 'chat') {
+    const st = get();
+    const o = st.options.find((x) => x.id === optionId);
+    if (!o) return;
+    const next = withChange(o, patch, material, st.priority);
+    dispatch({ type: 'busy', value: true, label: 'Updating' });
+    hooks.showModel();
+    const what = [];
+    if (material && material !== o.material) what.push(`material to ${matShort(material).toLowerCase()}`);
+    if (patch.length && patch.length !== o.spec.length) what.push(`length to ${fmt.m(next.spec.length)} m`);
+    if (patch.width && patch.width !== o.spec.width) what.push(`width to ${fmt.m(next.spec.width)} m`);
+    if (patch.floors && patch.floors !== o.spec.floors) what.push(storeys(next.spec.floors));
+    if (patch.storeyHeight && patch.storeyHeight !== o.spec.storeyHeight) what.push(`storey height to ${fmt.m(next.spec.storeyHeight)} m`);
+    if (patch.roof && patch.roof !== o.spec.roof) what.push(`${patch.roof} roof`);
+    if ('bay' in patch && patch.bay !== o.spec.bay) what.push(patch.bay ? `${fmt.m(patch.bay)} m bays` : 'optimized bays');
+    await runTrace(`Updating option ${o.letter}`, [
+      { label: 'Update the brief', tool: 'update_spec', ms: 380, detail: what.length ? `Set ${listJoin(what)}` : 'No change needed' },
+      {
+        label: next.manualBay ? 'Lay out your bay grid' : 'Re-run bay study', tool: 'study_bays', ms: 650,
+        run: async () => dispatch({ type: 'opt/set', id: o.id, patch: { ...next, stage: 'grid' } }),
+        detail: `${fmt.bay(next.result.grid.sx, next.result.grid.sz)} m bays, ${next.result.metrics.columns} columns`,
+      },
+      {
+        label: 'Rebuild 3D model', tool: 'build_geometry', ms: 120,
+        run: async () => { dispatch({ type: 'opt/set', id: o.id, patch: { stage: 'build', animate: true } }); await waitBuilt(o.id); },
+        detail: `${fmt.int(memberCount(next))} members`,
+      },
+    ]);
+    const a = o.result.metrics, b = next.result.metrics;
+    const bits = [];
+    if (material && material !== o.material) bits.push(`Option ${o.letter} is now ${MATERIALS[material].name.toLowerCase()}.`);
+    else bits.push(`Option ${o.letter} is updated.`);
+    if (a.bayX !== b.bayX || a.bayZ !== b.bayZ) {
+      const dc = b.columns - a.columns;
+      bits.push(`The grid moved from ${fmt.bay(a.bayX, a.bayZ)} m to ${fmt.bay(b.bayX, b.bayZ)} m bays${dc ? `, so it ${dc < 0 ? 'loses' : 'needs'} ${Math.abs(dc)} column${Math.abs(dc) === 1 ? '' : 's'}` : ''}.`);
+    } else bits.push(`It keeps the ${fmt.bay(b.bayX, b.bayZ)} m grid.`);
+    dispatch({
+      type: 'msg/add',
+      msg: {
+        id: uid('m'), role: 'agent', kind: 'change', text: bits.join(' '), optionId: o.id,
+        deltas: [
+          { label: 'Cost', pct: fmt.pct(b.cost, a.cost) },
+          { label: 'Carbon', pct: fmt.pct(b.carbon, a.carbon) },
+          { label: 'Schedule', pct: fmt.pct(b.weeks, a.weeks) },
+        ],
+      },
+    });
+    dispatch({ type: 'walk', key: 'changed' });
+    dispatch({ type: 'busy', value: false });
+  }
+
+  function remove(id, viaChat) {
+    const o = get().options.find((x) => x.id === id);
+    if (!o) return;
+    dispatch({ type: 'opt/remove', id });
+    dispatch({ type: 'walk', key: 'managed' });
+    if (viaChat) say(`Deleted option ${optLabel(o)}. Use Undo in the notice below if you need it back.`);
+    else dispatch({ type: 'msg/add', msg: { id: uid('m'), role: 'note', kind: 'note', text: `You deleted option ${optLabel(o)}` } });
+  }
+
+  function startBrief(p, text) {
+    const st = get();
+    const merged = pending ? { ...pending, ...Object.fromEntries(Object.entries(p).filter(([, v]) => v !== undefined && !(Array.isArray(v) && !v.length))) } : p;
+    if (!merged.length || !merged.width) {
+      pending = merged;
+      dispatch({
+        type: 'msg/add',
+        msg: {
+          id: uid('m'), role: 'agent', kind: 'clarify',
+          text: merged.type ? `What footprint should the ${merged.type} have? Pick one or type your own, like "8 x 5 m".` : merged.hasSpec || merged.materials?.length ? 'What footprint should I use? Pick one or type your own, like "8 x 5 m".' : 'Describe the building you want to study. Pick a starting point or type your own.',
+          chips: merged.type ? [`6 x 4 m`, `12 x 8 m`, `30 x 12 m`] : ['6 x 4 m shed', '30 x 12 m workshop', '48 x 24 m office, 5 storeys'],
+        },
+      });
+      return;
+    }
+    pending = null;
+    const d = typeDefaults(merged.type);
+    const assumed = [];
+    if (merged.storeyHeight === undefined) assumed.push('storeyHeight');
+    if (merged.floors === undefined) assumed.push('floors');
+    if (merged.roof === undefined) assumed.push('roof');
+    if (!merged.materials?.length) assumed.push('materials');
+    const spec = normalizeSpec({
+      type: merged.type || 'building', length: merged.length, width: merged.width,
+      storeyHeight: merged.storeyHeight ?? d.storeyHeight, floors: merged.floors ?? 1, roof: merged.roof ?? d.roof,
+      bay: typeof merged.bay === 'number' ? merged.bay : null,
+    });
+    const materials = merged.materials?.length ? merged.materials : [...MATERIAL_KEYS];
+    const priority = merged.priority || st.priority;
+    dispatch({ type: 'msg/add', msg: { id: uid('m'), role: 'agent', kind: 'spec', spec, materials, priority, assumed, state: 'pending', units: merged.units } });
+  }
+
+  async function send(raw) {
+    const text = String(raw || '').trim();
+    if (!text) return;
+    const st = get();
+    dispatch({ type: 'msg/add', msg: { id: uid('m'), role: 'user', kind: 'text', text } });
+    if (st.busy) return say('I am still working on the last request. Send that again once it finishes.');
+    await wait(260);
+    const p = parseBrief(text);
+    const active = st.options.find((o) => o.id === st.activeId);
+    const letterOpt = (L) => (L === 'ACTIVE' ? active : st.options.find((o) => o.letter === L));
+
+    if (p.help) {
+      return say('I lay out a column grid, size the members and estimate cost, embodied carbon and schedule for each structural system. Try:\n• "Generate a 6 m x 4 m wooden shed"\n• "Switch it to steel"\n• "Add a concrete version as a new option"\n• "Use 8 m bays" or "Make it two storeys"\n• "Compare options" or "Write the report"');
+    }
+    if (p.undo) {
+      const t = get().toast;
+      if (t?.undo) { hooks.undo(t); return say('Done. I undid the last delete.'); }
+      return say('There is nothing to undo right now.');
+    }
+    if (p.reset) { hooks.reset(); return; }
+    if (p.deleteLetter) {
+      const o = letterOpt(p.deleteLetter);
+      return o ? remove(o.id, true) : say(`There is no option ${p.deleteLetter}. Open options: ${listJoin(st.options.map((x) => x.letter)) || 'none'}.`);
+    }
+    if (p.selectLetter && !p.materials.length && !p.hasSpec) {
+      const o = letterOpt(p.selectLetter);
+      if (!o) return say(`There is no option ${p.selectLetter}.`);
+      dispatch({ type: 'active', id: o.id });
+      dispatch({ type: 'compare', value: false });
+      dispatch({ type: 'walk', key: 'managed' });
+      return say(`Showing option ${optLabel(o)}.`);
+    }
+    if (p.report && !p.hasSpec) {
+      if (!st.options.length) return say('There is nothing to report yet. Describe a building first.');
+      hooks.openReport();
+      return say('The comparison report is open. You can copy it as Markdown from there.');
+    }
+    if (p.envelope !== undefined && !p.hasSpec && !p.materials.length) {
+      dispatch({ type: 'display', patch: { envelope: p.envelope } });
+      return say(p.envelope ? 'Walls and roof are on.' : 'Walls and roof are off, so you can see the frame.');
+    }
+    if (p.compare && !p.hasSpec && p.materials.length < 2) {
+      if (st.options.length < 2) return say('Comparing needs at least two options. Try "Add a steel version as a new option".');
+      dispatch({ type: 'compare', value: true });
+      hooks.showModel();
+      return say(`Showing ${listJoin(st.options.slice(0, 4).map((o) => o.letter))} side by side. The camera is shared, so drag any view to orbit all of them.`);
+    }
+    if (p.priority && !p.hasSpec && !p.materials.length && st.options.length) {
+      dispatch({ type: 'priority', value: p.priority });
+      const rec = recommendation(get().options, p.priority);
+      return say(`Ranking by ${PRIORITIES[p.priority].label.toLowerCase()} now. I re-ran the bay study for every option.${rec ? ` ${rec.text}` : ''}`);
+    }
+
+    // A brief is waiting for approval and this message adds nothing new
+    const waiting = st.messages.some((m) => m.kind === 'spec' && m.state === 'pending');
+    if (waiting && !p.hasSpec && !p.materials.length) {
+      return say('The brief above is waiting for you. Press Generate, edit any field, or describe a different building.');
+    }
+    // No options yet, or a fresh multi-material brief: start the brief flow
+    if (!st.options.length || pending) return startBrief(p, text);
+    if (p.length && p.width && p.materials.length >= 2 && !p.newOption) return startBrief(p, text);
+
+    // New option(s) from the active spec
+    if (p.newOption || (p.materials.length >= 2 && !p.hasSpec)) {
+      const base = active || st.options[0];
+      const used = new Set(st.options.map((o) => o.material));
+      const mats = p.materials.length ? p.materials : [MATERIAL_KEYS.find((k) => !used.has(k)) || base.material];
+      const patch = {};
+      for (const k of ['length', 'width', 'storeyHeight', 'floors', 'roof']) if (p[k] !== undefined) patch[k] = p[k];
+      if (typeof p.bay === 'number') patch.bay = p.bay;
+      return generate({ ...base.spec, ...patch }, mats, st.priority, { added: true });
+    }
+
+    // Change the active option
+    if (active && (p.materials.length || p.hasSpec)) {
+      const patch = {};
+      for (const k of ['length', 'width', 'storeyHeight', 'floors', 'roof']) if (p[k] !== undefined) patch[k] = p[k];
+      if (p.bay === 'auto') patch.bay = null;
+      else if (typeof p.bay === 'number') patch.bay = p.bay;
+      return change(active.id, patch, p.materials[0]);
+    }
+    return say('I did not find a building or a change in that. Try a footprint like "6 m x 4 m shed", or a change like "switch it to steel".');
+  }
+
+  async function confirmSpec(msgId, spec, materials, priority) {
+    dispatch({ type: 'msg/patch', id: msgId, patch: { state: 'confirmed', spec, materials, priority } });
+    if (priority !== get().priority) dispatch({ type: 'priority', value: priority });
+    await generate(spec, materials, priority);
+  }
+
+  return {
+    send, confirmSpec, change, remove, generate,
+    resolveBuilt(id) { const r = builtWaiters.get(id); if (r) { builtWaiters.delete(id); r(); } },
+    clearPending() { pending = null; },
+    addOption(material) {
+      const st = get();
+      const base = st.options.find((o) => o.id === st.activeId) || st.options[0];
+      if (!base) return;
+      dispatch({ type: 'msg/add', msg: { id: uid('m'), role: 'user', kind: 'text', text: `Add a ${matShort(material).toLowerCase()} version as a new option` } });
+      generate(base.spec, [material], st.priority, { added: true });
+    },
+  };
+}
+
+// ------------------------------------------------------------- icons -----
+const ICONS = {
+  send: 'M12 19V5M6 11l6-6 6 6',
+  plus: 'M12 5v14M5 12h14',
+  x: 'M6 6l12 12M18 6L6 18',
+  chev: 'M6 9l6 6 6-6',
+  check: 'M5 12.5l4.5 4.5L19 7.5',
+  iso: 'M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3zM12 12l8-4.5M12 12v9M12 12L4 7.5',
+  top: 'M4.5 4.5h15v15h-15zM4.5 12h15M12 4.5v15',
+  front: 'M4 20h16M6 20V10h12v10M6 10l6-5 6 5',
+  fit: 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',
+  sun: 'M12 4V2.5M12 21.5V20M4 12H2.5M21.5 12H20M6.3 6.3L5.2 5.2M18.8 18.8l-1.1-1.1M6.3 17.7l-1.1 1.1M18.8 5.2l-1.1 1.1M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z',
+  moon: 'M19.5 14.5A7.5 7.5 0 0 1 9.5 4.5a7.5 7.5 0 1 0 10 10z',
+  doc: 'M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h4',
+  split: 'M4 5h16v14H4zM12 5v14',
+  walls: 'M3 10l9-6 9 6M5 9v11h14V9M10 20v-6h4v6',
+  ruler: 'M3.5 16.5l13-13 4 4-13 13zM7.5 12.5l2 2M10.5 9.5l2 2M13.5 6.5l2 2',
+  list: 'M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01',
+  sliders: 'M4 7h9M17 7h3M4 17h3M11 17h9M15 4.5v5M9 14.5v5',
+  undo: 'M9 14L4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11',
+  copy: 'M9 9h11v11H9zM5 15H4V4h11v1',
+  newdoc: 'M14 3H6v18h12V7zM14 3v4h4M12 11v6M9 14h6',
+  clip: 'M20 11.5l-8.2 8.2a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4L15 7.2',
+  info: 'M12 8h.01M11 12h1v5h1M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18z',
+  chat: 'M5 5h14v10H9l-4 4z',
+  cube: 'M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z',
+};
+const Icon = ({ name, size = 18, stroke = 1.6 }) => html`
+  <svg className="ic" width=${size} height=${size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth=${stroke} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d=${ICONS[name]} /></svg>`;
+
+const BrandMark = () => html`
+  <svg className="brand-mark" width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
+    <circle cx="13" cy="8.5" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+    <path d="M13 15v10M6 21h14" stroke="currentColor" strokeWidth="1.6" strokeDasharray="2.2 1.8" />
+    <text x="13" y="11.6" textAnchor="middle" fontSize="8.5" fontWeight="700" fill="currentColor" fontFamily="Archivo, system-ui, sans-serif">S</text>
+  </svg>`;
+
+// --------------------------------------------------------- small UI -----
+function useEnter(ref, enabled, from = { y: 8, opacity: 0 }) {
+  useLayoutEffect(() => {
+    if (!enabled || REDUCED || !ref.current) return;
+    gsap.from(ref.current, { ...from, duration: 0.34, ease: 'power2.out', clearProps: 'transform,opacity' });
+  }, []);
+}
+
+function useCountUp(value, format) {
+  const [shown, setShown] = useState(value);
+  const prev = useRef(value);
+  useEffect(() => {
+    if (REDUCED || prev.current === value || !isFinite(prev.current)) { prev.current = value; setShown(value); return; }
+    const o = { v: prev.current };
+    prev.current = value;
+    const tw = gsap.to(o, { v: value, duration: 0.7, ease: 'power3.out', onUpdate: () => setShown(o.v) });
+    return () => tw.kill();
+  }, [value]);
+  return format(shown);
+}
+
+const MatTile = ({ o, size = 'md' }) => html`<span className=${`mat-tile mat-tile--${size} is-${o.material}`} aria-hidden="true">${o.letter}</span>`;
+
+function Segmented({ value, options, onChange, label, small }) {
+  return html`<div className=${`seg ${small ? 'seg--sm' : ''}`} role="radiogroup" aria-label=${label}>
+    ${options.map((op) => html`<button key=${op.value} type="button" role="radio" aria-checked=${value === op.value} className=${`seg-btn ${value === op.value ? 'is-on' : ''}`} onClick=${() => onChange(op.value)} disabled=${op.disabled}>
+      ${op.dot && html`<span className=${`dot is-${op.value}`}></span>`}${op.label}</button>`)}
+  </div>`;
+}
+
+function NumberField({ id, label, value, unit, min, max, step, onChange, assumed, compact }) {
+  const [txt, setTxt] = useState(String(value));
+  useEffect(() => setTxt(String(+(+value).toFixed(2))), [value]);
+  const commit = () => {
+    const v = parseFloat(txt);
+    if (!isFinite(v)) return setTxt(String(value));
+    const c = Math.min(max, Math.max(min, v));
+    setTxt(String(c));
+    if (c !== value) onChange(c);
+  };
+  return html`<label className=${`nf ${compact ? 'nf--compact' : ''} ${assumed ? 'is-assumed' : ''}`} htmlFor=${id}>
+    <span className="nf-label">${label}${assumed && html`<em className="assumed">assumed</em>`}</span>
+    <span className="nf-box">
+      <input id=${id} inputMode="decimal" value=${txt} onChange=${(e) => setTxt(e.target.value)} onBlur=${commit} onKeyDown=${(e) => e.key === 'Enter' && e.currentTarget.blur()} />
+      ${unit && html`<span className="nf-unit">${unit}</span>`}
+    </span>
+  </label>`;
+}
+
+function SliderField({ id, label, value, unit, min, max, step, onChange, onCommit, format = (v) => v }) {
+  return html`<div className="sf">
+    <div className="sf-top"><label htmlFor=${id}>${label}</label><output htmlFor=${id}>${format(value)}${unit ? html`<span className="unit"> ${unit}</span>` : ''}</output></div>
+    <input id=${id} type="range" min=${min} max=${max} step=${step} value=${value}
+      style=${{ '--p': `${((value - min) / (max - min)) * 100}%` }}
+      onChange=${(e) => onChange(+e.target.value)} onPointerUp=${() => onCommit?.()} onKeyUp=${() => onCommit?.()} />
+  </div>`;
+}
+
+// ------------------------------------------------------------- chat -----
+function Message({ m, state, agent, ui }) {
+  const ref = useRef(null);
+  useEnter(ref, m.fresh);
+  let body;
+  if (m.kind === 'welcome') body = html`<${Welcome} ui=${ui} />`;
+  else if (m.role === 'user') body = html`<div className="bubble">${m.text}</div>`;
+  else if (m.kind === 'note') body = html`<div className="note">${m.text}</div>`;
+  else if (m.kind === 'trace') body = html`<${TraceCard} m=${m} ui=${ui} />`;
+  else if (m.kind === 'spec') body = html`<${SpecCard} m=${m} agent=${agent} busy=${state.busy} />`;
+  else if (m.kind === 'result') body = html`<${ResultCard} m=${m} state=${state} ui=${ui} />`;
+  else if (m.kind === 'change') body = html`<${ChangeCard} m=${m} />`;
+  else if (m.kind === 'clarify') body = html`<div className="agent-text"><p>${m.text}</p><div className="chips">${m.chips.map((c) => html`<button key=${c} type="button" className="chip" onClick=${() => agent.send(c)}>${c}</button>`)}</div></div>`;
+  else body = html`<div className="agent-text">${String(m.text).split('\n').map((l, i) => html`<p key=${i}>${l}</p>`)}</div>`;
+  const agentSide = m.role === 'agent' && m.kind !== 'welcome';
+  return html`<div ref=${ref} className=${`msg msg--${m.role} msg--${m.kind}`}>
+    ${agentSide && html`<span className="avatar" aria-hidden="true"><${BrandMark} /></span>`}
+    <div className="msg-body">${body}</div>
+  </div>`;
+}
+
+function Welcome({ ui }) {
+  const examples = [
+    'Generate a 6 m x 4 m wooden shed',
+    'Single-storey workshop, 30 x 12 m, gable roof. Compare timber, concrete and steel.',
+    '5-storey office, 48 x 24 m, lowest carbon',
+  ];
+  return html`<div className="welcome">
+    <h2>What are we designing?</h2>
+    <p>Describe the building in plain words. I will lay out a column grid, size the members and compare cost, embodied carbon and schedule for each structural system.</p>
+    <div className="welcome-list">
+      ${examples.map((e) => html`<button key=${e} type="button" className="example" onClick=${() => ui.fill(e)}><span>${e}</span><${Icon} name="send" size=${14} /></button>`)}
+    </div>
+  </div>`;
+}
+
+function TraceCard({ m, ui }) {
+  const running = m.state === 'running';
+  const done = m.steps.filter((s) => s.status === 'done').length;
+  const open = running || !m.collapsed;
+  return html`<div className=${`trace ${running ? 'is-running' : ''}`}>
+    <button type="button" className="trace-head" onClick=${() => !running && ui.patchMsg(m.id, { collapsed: !m.collapsed })} aria-expanded=${open}>
+      <span className="trace-state">${running ? html`<span className="spin" aria-hidden="true"></span>` : html`<${Icon} name="check" size=${14} stroke=${2} />`}</span>
+      <span className="trace-title">${m.title}</span>
+      <span className="trace-meta">${running ? `${done} of ${m.steps.length}` : `${m.steps.length} tool calls, ${m.elapsed?.toFixed(1)} s`}</span>
+      ${!running && html`<span className=${`trace-chev ${open ? 'is-open' : ''}`}><${Icon} name="chev" size=${14} /></span>`}
+    </button>
+    ${open && html`<ol className="trace-steps">
+      ${m.steps.map((s, i) => html`<li key=${i} className=${`step is-${s.status}`}>
+        <span className="step-dot" aria-hidden="true">${s.status === 'done' ? html`<${Icon} name="check" size=${11} stroke=${2.4} />` : s.status === 'running' ? html`<span className="spin spin--sm"></span>` : ''}</span>
+        <div className="step-main">
+          <div className="step-row"><span className="step-label">${s.label}</span><code className="step-tool">${s.tool}</code></div>
+          ${s.detail && html`<div className="step-detail">${s.detail}</div>`}
+        </div>
+      </li>`)}
+    </ol>`}
+  </div>`;
+}
+
+function SpecCard({ m, agent, busy }) {
+  const [spec, setSpec] = useState(m.spec);
+  const [mats, setMats] = useState(m.materials);
+  const [priority, setPriority] = useState(m.priority);
+  const [assumed, setAssumed] = useState(m.assumed || []);
+  const locked = m.state !== 'pending';
+  const set = (k, v) => { setSpec((s) => normalizeSpec({ ...s, [k]: v })); setAssumed((a) => a.filter((x) => x !== k)); };
+  const toggleMat = (k) => { setMats((a) => (a.includes(k) ? (a.length > 1 ? a.filter((x) => x !== k) : a) : MATERIAL_KEYS.filter((x) => a.includes(x) || x === k))); setAssumed((a) => a.filter((x) => x !== 'materials')); };
+  if (locked) {
+    return html`<div className="spec spec--locked">
+      <div className="spec-head"><span className="spec-title">Brief confirmed</span><span className="pill pill--good"><${Icon} name="check" size=${12} stroke=${2.2} />You approved</span></div>
+      <p className="spec-line">${titleCase(m.spec.type)}, ${describeSpec(m.spec)}.</p>
+      <p className="spec-line spec-line--muted">Systems: ${listJoin(m.materials.map((k) => MATERIALS[k].name.toLowerCase()))}. Ranked by ${PRIORITIES[m.priority].label.toLowerCase()}.</p>
+    </div>`;
+  }
+  const id = (k) => `${m.id}-${k}`;
+  return html`<div className="spec">
+    <div className="spec-head"><span className="spec-title">Check the brief before I generate</span><span className="pill pill--warn">Needs your review</span></div>
+    <p className="spec-intro">This is what I read from your message.${assumed.length ? ' Fields marked assumed were not in it, so I used typical values.' : ''}${m.units === 'ft' ? ' I converted feet to metres.' : ''}</p>
+    <div className="spec-grid">
+      <${NumberField} id=${id('len')} label="Length" unit="m" value=${spec.length} min=${3} max=${120} onChange=${(v) => set('length', v)} />
+      <${NumberField} id=${id('wid')} label="Width" unit="m" value=${spec.width} min=${3} max=${60} onChange=${(v) => set('width', v)} />
+      <${NumberField} id=${id('flr')} label="Storeys" value=${spec.floors} min=${1} max=${12} onChange=${(v) => set('floors', Math.round(v))} assumed=${assumed.includes('floors')} />
+      <${NumberField} id=${id('sh')} label=${spec.floors > 1 ? 'Floor to floor' : 'Eaves height'} unit="m" value=${spec.storeyHeight} min=${2.4} max=${8} onChange=${(v) => set('storeyHeight', v)} assumed=${assumed.includes('storeyHeight')} />
+    </div>
+    <div className="spec-row">
+      <span className="spec-label">Roof${assumed.includes('roof') && html`<em className="assumed">assumed</em>`}</span>
+      <${Segmented} small label="Roof" value=${spec.roof} onChange=${(v) => set('roof', v)} options=${[{ value: 'flat', label: 'Flat' }, { value: 'gable', label: 'Gable' }]} />
+    </div>
+    <div className="spec-row">
+      <span className="spec-label">Systems${assumed.includes('materials') && html`<em className="assumed">all three</em>`}</span>
+      <div className="toggles" role="group" aria-label="Structural systems">
+        ${MATERIAL_KEYS.map((k) => html`<button key=${k} type="button" aria-pressed=${mats.includes(k)} className=${`toggle ${mats.includes(k) ? 'is-on' : ''}`} onClick=${() => toggleMat(k)}><span className=${`dot is-${k}`}></span>${MATERIALS[k].short}</button>`)}
+      </div>
+    </div>
+    <div className="spec-row">
+      <span className="spec-label">Rank by</span>
+      <select id=${`${m.id}-rank`} className="select" aria-label="Rank options by" value=${priority} onChange=${(e) => setPriority(e.target.value)}>
+        ${Object.entries(PRIORITIES).map(([k, v]) => html`<option key=${k} value=${k}>${v.label}</option>`)}
+      </select>
+    </div>
+    <div className="spec-actions">
+      <button type="button" className="btn btn--primary" disabled=${busy} onClick=${() => agent.confirmSpec(m.id, spec, mats, priority)}>
+        Generate ${mats.length > 1 ? `${mats.length} options` : `${MATERIALS[mats[0]].short.toLowerCase()} option`}
+      </button>
+      <span className="hint">You can change any of this later.</span>
+    </div>
+  </div>`;
+}
+
+function ResultCard({ m, state, ui }) {
+  const opts = m.optionIds.map((id) => state.options.find((o) => o.id === id)).filter(Boolean);
+  const live = state.options.filter((o) => o.stage === 'ready');
+  const best = live.length > 1 ? bestOf(live.map((o) => o.result)) : null;
+  const isBest = (o, k) => best && o.result.metrics[k] === best[k];
+  return html`<div className="result">
+    <div className="agent-text"><p><strong>${m.title}.</strong> ${m.text}</p></div>
+    ${opts.length > 0 && html`<div className="result-list">
+      ${opts.map((o) => html`<button key=${o.id} type="button" className=${`result-row ${state.activeId === o.id && !state.compare ? 'is-active' : ''}`} onClick=${() => ui.select(o.id)}>
+        <${MatTile} o=${o} size="sm" />
+        <span className="rr-name">${matShort(o.material)}</span>
+        <span className=${`rr-v ${isBest(o, 'cost') ? 'is-best' : ''}`}>${fmt.money(o.result.metrics.cost)}</span>
+        <span className=${`rr-v ${isBest(o, 'carbon') ? 'is-best' : ''}`}>${fmt.carbon(o.result.metrics.carbon)} t</span>
+        <span className=${`rr-v ${isBest(o, 'weeks') ? 'is-best' : ''}`}>${fmt.weeks(o.result.metrics.weeks)} wk</span>
+      </button>`)}
+    </div>`}
+    ${opts.length === 0 && html`<p className="hint">These options were deleted.</p>`}
+    <div className="result-actions">
+      ${state.options.length > 1 && html`<button type="button" className="btn btn--ghost btn--sm" onClick=${() => ui.compare(true)}><${Icon} name="split" size=${15} />Compare side by side</button>`}
+      ${state.options.length > 0 && html`<button type="button" className="btn btn--ghost btn--sm" onClick=${ui.openReport}><${Icon} name="doc" size=${15} />Open report</button>`}
+    </div>
+  </div>`;
+}
+
+function ChangeCard({ m }) {
+  return html`<div className="agent-text">
+    <p>${m.text}</p>
+    <div className="deltas">${m.deltas.map((d) => html`<span key=${d.label} className=${`delta ${d.pct < 0 ? 'is-down' : d.pct > 0 ? 'is-up' : ''}`}>${d.label} ${d.pct > 0 ? '+' : d.pct < 0 ? '−' : '±'}${Math.abs(d.pct)}%</span>`)}</div>
+  </div>`;
+}
+
+function Chat({ state, agent, ui, composer, setComposer, composerRef }) {
+  const listRef = useRef(null);
+  const fileRef = useRef(null);
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: REDUCED ? 'auto' : 'smooth' });
+  }, [state.messages.length, state.messages[state.messages.length - 1]?.steps?.filter((s) => s.status === 'done').length, state.messages[state.messages.length - 1]?.collapsed]);
+  useLayoutEffect(() => {
+    const t = composerRef.current;
+    if (!t) return;
+    t.style.height = 'auto';
+    t.style.height = `${Math.min(160, t.scrollHeight)}px`;
+  }, [composer]);
+  const submit = (e) => {
+    e?.preventDefault();
+    if (!composer.trim() || state.busy) return;
+    agent.send(composer);
+    setComposer('');
+  };
+  const active = state.options.find((o) => o.id === state.activeId);
+  const used = new Set(state.options.map((o) => o.material));
+  const missing = MATERIAL_KEYS.find((k) => !used.has(k));
+  const suggestions = !state.options.length ? [] : [
+    missing ? `Try it in ${matShort(missing).toLowerCase()} as a new option` : 'Add another option',
+    active && active.material !== 'steel' ? 'Switch it to steel' : 'Switch it to timber',
+    active ? `Make it ${fmt.m(Math.min(120, active.spec.length + 2), 0)} m long` : null,
+    state.options.length > 1 ? 'Compare options' : 'Use 4 m bays',
+    'Write the report',
+  ].filter(Boolean);
+  const onFile = async (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    if (/\.json$/i.test(f.name)) {
+      try {
+        const j = JSON.parse(await f.text());
+        const d = j.dimensions || j;
+        const parts = [`${d.length ?? j.length} x ${d.width ?? j.width} m`];
+        if (j.buildingType || j.type) parts.push(j.buildingType || j.type);
+        if (d.height ?? j.height) parts.push(`${d.height ?? j.height} m storey height`);
+        if (j.floors) parts.push(`${j.floors} storeys`);
+        if (j.material) parts.push(j.material);
+        agent.send(`From ${f.name}: ${parts.join(', ')}`);
+      } catch {
+        agent.send(`Attached ${f.name}`);
+      }
+    } else {
+      ui.say(`I received ${f.name}. Reading IFC and Revit models is planned for phase 2, when WSP shares a model. For now, attach a JSON massing file or describe the footprint.`);
+    }
+  };
+  return html`<section className="chat panel" aria-label="Agent chat">
+    <header className="chat-head">
+      <div className="chat-title">
+        <span className=${`status-dot ${state.busy ? 'is-busy' : ''}`} aria-hidden="true"></span>
+        <span>Agent</span>
+        <span className="chat-sub">${state.busy ? state.busyLabel || 'Working' : 'Ready'}</span>
+      </div>
+      <span className="pill pill--outline" title="Answers come from a local script. No AI model is connected yet.">Demo mode</span>
+    </header>
+    <div className="chat-list" ref=${listRef} role="log" aria-live="polite">
+      ${state.messages.map((m) => html`<${Message} key=${m.id} m=${m} state=${state} agent=${agent} ui=${ui} />`)}
+    </div>
+    <div className="composer-wrap">
+      ${suggestions.length > 0 && html`<div className="suggest" aria-label="Suggestions">
+        ${suggestions.map((s) => html`<button key=${s} type="button" className="chip chip--sm" onClick=${() => { setComposer(s); composerRef.current?.focus(); }}>${s}</button>`)}
+      </div>`}
+      <form className="composer" onSubmit=${submit}>
+        <label htmlFor="composer" className="sr">Message the agent</label>
+        <textarea id="composer" ref=${composerRef} rows="1" value=${composer} placeholder=${state.options.length ? 'Ask for a change or a new option' : 'Describe your building'}
+          onChange=${(e) => setComposer(e.target.value)}
+          onKeyDown=${(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } }} />
+        <div className="composer-row">
+          <button type="button" className="icon-btn" aria-label="Attach a building file" title="Attach a JSON massing file" onClick=${() => fileRef.current?.click()}><${Icon} name="clip" size=${17} /></button>
+          <input id="attach-file" ref=${fileRef} type="file" accept=".json,.ifc,.rvt" hidden onChange=${onFile} />
+          <span className="hint">Enter to send, Shift + Enter for a new line</span>
+          <button type="submit" className="send" aria-label="Send" disabled=${!composer.trim() || state.busy}><${Icon} name="send" size=${17} stroke=${2} /></button>
+        </div>
+      </form>
+    </div>
+  </section>`;
+}
+
+// ------------------------------------------------------------ viewer -----
+function OptionTab({ o, active, onSelect, onClose, busy }) {
+  const ref = useRef(null);
+  useEnter(ref, o.fresh, { scale: 0.92, opacity: 0 });
+  const generating = o.stage !== 'ready';
+  return html`<div ref=${ref} className=${`tab ${active ? 'is-active' : ''} is-${o.material}`} role="presentation">
+    <button type="button" role="tab" aria-selected=${active} className="tab-btn" onClick=${onSelect}>
+      <${MatTile} o=${o} size="sm" />
+      <span className="tab-name">${matShort(o.material)}</span>
+      ${generating && html`<span className="spin spin--sm" aria-label="Generating"></span>`}
+    </button>
+    <button type="button" className="tab-x" aria-label=${`Delete option ${o.letter}`} title=${`Delete option ${o.letter}`} onClick=${onClose} disabled=${busy}><${Icon} name="x" size=${13} stroke=${2} /></button>
+  </div>`;
+}
+
+function AddMenu({ onPick, onClose }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
+    const k = (e) => e.key === 'Escape' && onClose();
+    setTimeout(() => document.addEventListener('pointerdown', h));
+    document.addEventListener('keydown', k);
+    return () => { document.removeEventListener('pointerdown', h); document.removeEventListener('keydown', k); };
+  }, []);
+  useEnter(ref, true, { y: -6, opacity: 0 });
+  return html`<div ref=${ref} className="menu" role="menu">
+    <div className="menu-title">New option from the active brief</div>
+    ${MATERIAL_KEYS.map((k) => html`<button key=${k} role="menuitem" type="button" className="menu-item" onClick=${() => onPick(k)}>
+      <span className=${`dot is-${k}`}></span><span>${MATERIALS[k].name}</span><span className="menu-sub">${MATERIALS[k].code}</span></button>`)}
+  </div>`;
+}
+
+function Metric({ label, value, unit, sub, best, fmtFn, title }) {
+  const shown = useCountUp(value, fmtFn);
+  return html`<div className=${`metric ${best ? 'is-best' : ''}`} title=${title}>
+    <div className="metric-label"><span className="metric-name">${label}</span>${best && html`<span className="best" title="Lowest of the open options" aria-label="Lowest of the open options"><${Icon} name="check" size=${11} stroke=${2.6} /></span>`}</div>
+    <div className="metric-value"><span>${shown}</span>${unit && html`<span className="metric-unit">${unit}</span>`}</div>
+    <div className="metric-sub">${sub}</div>
+  </div>`;
+}
+
+function MetricsStrip({ o, state }) {
+  const M = o.result.metrics;
+  const ready = state.options.filter((x) => x.stage === 'ready');
+  const best = ready.length > 1 ? bestOf(ready.map((x) => x.result)) : null;
+  const pending = o.stage !== 'ready';
+  return html`<div className=${`metrics glass ${pending ? 'is-pending' : ''}`} aria-label=${`Estimates for option ${o.letter}`}>
+    <${Metric} label="Cost" value=${M.cost} fmtFn=${fmt.money} sub=${`$${fmt.int(M.costPerM2)} per m²`} best=${best && M.cost === best.cost} />
+    <${Metric} label="Carbon" title="Embodied carbon, stages A1 to A3" value=${M.carbon} fmtFn=${fmt.carbon} unit="tCO₂e" sub=${`${fmt.int(M.intensity)} kg per m²`} best=${best && M.carbon === best.carbon} />
+    <${Metric} label="Schedule" value=${M.weeks} fmtFn=${fmt.weeks} unit="weeks" sub=${`${fmt.int(M.days)} work days`} best=${best && M.weeks === best.weeks} />
+    <${Metric} label="Bay size" value=${M.bayX} fmtFn=${() => fmt.bay(M.bayX, M.bayZ)} unit="m" sub=${`${o.result.grid.nx} × ${o.result.grid.nz} bays`} title=${o.result.manualBay ? 'Bay size set by you' : 'Bay size picked by the agent'} />
+    <${Metric} label="Columns" value=${M.columns} fmtFn=${(v) => fmt.int(v)} sub=${`${fmt.int(o.result.quantities.pieces)} pieces`} best=${best && M.columns === best.columns} title="Pieces to fabricate and erect" />
+    <div className="metrics-note" title="Placeholder factors stand in for WSP's cost, carbon and scheduling tools."><${Icon} name="info" size=${14} />Synthetic data</div>
+  </div>`;
+}
+
+function Inspector({ o, state, dispatch, agent, ui }) {
+  const [draft, setDraft] = useState(o.spec);
+  useEffect(() => setDraft(o.spec), [o.id, o.version]);
+  const r = o.result;
+  const commitTimer = useRef(null);
+  const live = (k, v) => {
+    const next = normalizeSpec({ ...draft, [k]: v });
+    setDraft(next);
+    clearTimeout(commitTimer.current);
+    commitTimer.current = setTimeout(() => apply(next, k), 140);
+  };
+  const apply = (spec, key) => {
+    dispatch({ type: 'opt/set', id: o.id, patch: (x) => ({ ...withChange(x, spec, x.material, state.priority), stage: 'ready', animate: false }) });
+    ui.noteEdit(o, key, spec);
+  };
+  const set = (k, v) => apply(normalizeSpec({ ...draft, [k]: v }), k);
+  const sec = r.sections;
+  const showFloor = o.spec.floors > 1;
+  const rows = [
+    ['Columns', sec.column.name],
+    [o.material === 'steel' ? 'Beams' : 'Beams, long way', sec.beamX.name],
+    [o.material === 'steel' ? 'Girders' : 'Beams, short way', sec.girder.name],
+    o.material === 'steel' && r.infillPerBay > 0 && ['Infill beams', sec.infill.name],
+    showFloor && ['Floors', sec.slab.name],
+    o.spec.roof === 'gable' ? ['Rafters', sec.rafter.name] : null,
+    ['Roof', sec.roofDeck.name],
+    o.material === 'steel' && ['Bracing', sec.brace.name],
+    ['Footings', `${r.footSide.toFixed(2)} m pads, ${r.quantities.footings} total`],
+  ].filter(Boolean);
+  return html`<aside className=${`inspector glass ${state.ui.inspector ? '' : 'is-collapsed'}`} aria-label=${`Option ${o.letter} properties`}>
+    <button type="button" className="insp-head" onClick=${() => dispatch({ type: 'ui', patch: { inspector: !state.ui.inspector } })} aria-expanded=${state.ui.inspector}>
+      <${MatTile} o=${o} />
+      <span className="insp-titles"><strong>Option ${o.letter}</strong><span>${MATERIALS[o.material].name}, ${MATERIALS[o.material].code}</span></span>
+      <span className=${`trace-chev ${state.ui.inspector ? 'is-open' : ''}`}><${Icon} name="chev" size=${15} /></span>
+    </button>
+    ${state.ui.inspector && html`<div className="insp-body">
+      <section className="insp-sec">
+        <h3>Structural system</h3>
+        <${Segmented} label="Material" value=${o.material} onChange=${(k) => k !== o.material && !state.busy && agent.change(o.id, {}, k, 'inspector')}
+          options=${MATERIAL_KEYS.map((k) => ({ value: k, label: matShort(k), dot: true, disabled: state.busy }))} />
+        <p className="insp-note">${MATERIALS[o.material].system}.</p>
+      </section>
+      <section className="insp-sec">
+        <h3>Dimensions</h3>
+        <${SliderField} id="insp-len" label="Length" unit="m" min=${3} max=${120} step=${0.5} value=${draft.length} format=${(v) => fmt.m(v)} onChange=${(v) => live('length', v)} />
+        <${SliderField} id="insp-wid" label="Width" unit="m" min=${3} max=${60} step=${0.5} value=${draft.width} format=${(v) => fmt.m(v)} onChange=${(v) => live('width', v)} />
+        <${SliderField} id="insp-sh" label=${draft.floors > 1 ? 'Floor to floor' : 'Eaves height'} unit="m" min=${2.4} max=${8} step=${0.1} value=${draft.storeyHeight} format=${(v) => fmt.m(v)} onChange=${(v) => live('storeyHeight', v)} />
+        <div className="insp-row">
+          <span className="insp-label">Storeys</span>
+          <div className="stepper">
+            <button type="button" aria-label="Fewer storeys" onClick=${() => set('floors', draft.floors - 1)} disabled=${draft.floors <= 1}>−</button>
+            <output>${draft.floors}</output>
+            <button type="button" aria-label="More storeys" onClick=${() => set('floors', draft.floors + 1)} disabled=${draft.floors >= 12}>+</button>
+          </div>
+        </div>
+        <div className="insp-row">
+          <span className="insp-label">Roof</span>
+          <${Segmented} small label="Roof" value=${draft.roof} onChange=${(v) => set('roof', v)} options=${[{ value: 'flat', label: 'Flat' }, { value: 'gable', label: 'Gable' }]} />
+        </div>
+      </section>
+      <section className="insp-sec">
+        <div className="insp-row insp-row--head">
+          <h3>Bay spacing</h3>
+          <${Segmented} small label="Bay spacing" value=${draft.bay ? 'manual' : 'auto'}
+            onChange=${(v) => set('bay', v === 'auto' ? null : Math.round(Math.max(r.grid.sx, r.grid.sz) * 2) / 2)}
+            options=${[{ value: 'auto', label: 'Agent' }, { value: 'manual', label: 'Manual' }]} />
+        </div>
+        ${draft.bay
+          ? html`<${SliderField} id="insp-bay" label="Maximum span" unit="m" min=${2} max=${14} step=${0.5} value=${draft.bay} format=${(v) => fmt.m(v)} onChange=${(v) => live('bay', v)} />
+            ${draft.bay > MATERIALS[o.material].maxSpan * 1.25 && html`<p className="insp-warn">Longer than a typical ${matShort(o.material).toLowerCase()} span of about ${MATERIALS[o.material].maxSpan} m, so beams get deep.</p>`}`
+          : html`<p className="insp-note">The agent tried ${plural(r.study.length, 'layout')} and kept the best score for ${PRIORITIES[state.priority].label.toLowerCase()}, with a small penalty for crowded floor plates.</p>`}
+        <table className="study">
+          <thead><tr><th scope="col">Bays (m)</th><th scope="col">Cols</th><th scope="col">Cost</th><th scope="col">tCO₂e</th><th scope="col">Wk</th></tr></thead>
+          <tbody>
+            ${r.study.map((s, i) => html`<tr key=${i} className=${s.chosen ? 'is-chosen' : ''}>
+              <td>${fmt.bay(s.sx, s.sz)}${s.chosen ? html`<span className="sr"> (chosen)</span>` : ''}</td>
+              <td>${s.columns}</td><td>${fmt.money(s.cost)}</td><td>${fmt.carbon(s.carbon)}</td><td>${fmt.weeks(s.weeks)}</td>
+            </tr>`)}
+          </tbody>
+        </table>
+      </section>
+      <section className="insp-sec">
+        <h3>Members</h3>
+        <dl className="members">${rows.map(([k, v]) => html`<div key=${k}><dt>${k}</dt><dd>${v}</dd></div>`)}</dl>
+      </section>
+    </div>`}
+  </aside>`;
+}
+
+function ViewerPanel({ state, dispatch, agent, ui, viewerRef }) {
+  const hostRef = useRef(null);
+  const areaRef = useRef(null);
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  const [failed, setFailed] = useState(false);
+  const [menu, setMenu] = useState(false);
+  const active = state.options.find((o) => o.id === state.activeId);
+  const compareIds = useMemo(() => {
+    if (!state.compare || state.options.length < 2) return [];
+    if (state.options.length <= 4) return state.options.map((o) => o.id);
+    const rest = state.options.filter((o) => o.id !== state.activeId).slice(0, 3);
+    return state.options.filter((o) => o.id === state.activeId || rest.includes(o)).map((o) => o.id);
+  }, [state.compare, state.options, state.activeId]);
+
+  useEffect(() => {
+    try {
+      viewerRef.current = new StructureViewer(hostRef.current, {
+        onBuilt: (id) => { dispatch({ type: 'opt/stageAll', ids: [id], stage: 'ready' }); agent.resolveBuilt(id); },
+        onInteract: () => dispatch({ type: 'walk', key: 'viewed' }),
+      });
+      ui.applyTheme();
+    } catch (err) {
+      console.warn('3D viewer unavailable', err);
+      setFailed(true);
+    }
+    const ro = new ResizeObserver(([e]) => setSize({ w: e.contentRect.width, h: e.contentRect.height }));
+    ro.observe(areaRef.current);
+    return () => { ro.disconnect(); viewerRef.current?.dispose(); };
+  }, []);
+
+  useEffect(() => {
+    viewerRef.current?.sync(state.options, { activeId: state.activeId, compareIds, display: state.display });
+  }, [state.options, state.activeId, compareIds, state.display]);
+
+  // Tell the viewer which parts of the canvas the glass panels cover
+  useLayoutEffect(() => {
+    const v = viewerRef.current, stage = areaRef.current;
+    if (!v || !stage) return;
+    const sr = stage.getBoundingClientRect();
+    const ins = { top: 0, right: 0, bottom: 0, left: 0 };
+    for (const el of stage.querySelectorAll('.inspector, .metrics')) {
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      const rightDocked = r.left > sr.left + sr.width * 0.5 && r.top < sr.top + sr.height * 0.5;
+      if (rightDocked) ins.right = Math.max(ins.right, sr.right - r.left + 8);
+      else ins.bottom = Math.max(ins.bottom, sr.bottom - r.top + 8);
+    }
+    ins.top = 52;
+    v.setInsets(ins);
+  });
+
+  const rects = compareIds.length > 1 ? compareRects(size.w, size.h, compareIds.length) : [];
+  const ready = state.options.filter((o) => o.stage === 'ready');
+  const best = ready.length > 1 ? bestOf(ready.map((o) => o.result)) : null;
+  const rank = useMemo(() => recommendation(state.options, state.priority), [state.options, state.priority]);
+  const view = (v) => { viewerRef.current?.frame(true, v); dispatch({ type: 'walk', key: 'viewed' }); };
+
+  return html`<section className="viewer" aria-label="3D viewer">
+    <div className="tabbar">
+      <div className="tabs" role="tablist" aria-label="Options">
+        ${state.options.map((o) => html`<${OptionTab} key=${o.id} o=${o} busy=${state.busy} active=${!state.compare && o.id === state.activeId}
+          onSelect=${() => ui.select(o.id)} onClose=${() => agent.remove(o.id)} />`)}
+        <div className="add-wrap">
+          <button type="button" className="tab-add" aria-label="New option" title="New option" disabled=${!active || state.busy || state.options.length >= MAX_OPTIONS} onClick=${() => setMenu((v) => !v)}><${Icon} name="plus" size=${16} /></button>
+          ${menu && html`<${AddMenu} onClose=${() => setMenu(false)} onPick=${(k) => { setMenu(false); agent.addOption(k); }} />`}
+        </div>
+      </div>
+      <div className="tabbar-tools">
+        <label className="rank-select">
+          <span>Rank by</span>
+          <select id="rank-by" className="select select--sm" value=${state.priority} onChange=${(e) => dispatch({ type: 'priority', value: e.target.value })} aria-label="Rank options by" disabled=${state.busy}>
+            ${Object.entries(PRIORITIES).map(([k, v]) => html`<option key=${k} value=${k}>${v.label}</option>`)}
+          </select>
+        </label>
+        <button type="button" className=${`tool ${state.compare ? 'is-on' : ''}`} aria-pressed=${state.compare} disabled=${state.options.length < 2} onClick=${() => ui.compare(!state.compare)}>
+          <${Icon} name="split" size=${16} /><span>Compare</span></button>
+      </div>
+    </div>
+    <div className="stage" ref=${areaRef}>
+      <div className="canvas-host" ref=${hostRef}></div>
+      ${failed && html`<div className="empty"><div className="empty-card"><h3>3D preview is off</h3><p>This browser did not give the page a WebGL context. Turn on hardware acceleration and reload. The chat, metrics and report still work.</p></div></div>`}
+      ${!state.options.length && !failed && html`<div className="empty"><div className="empty-card">
+        <h3>Your options appear here</h3>
+        <p>Each option gets its own tab with a 3D frame, a column grid in drafting style, and cost, carbon and schedule estimates.</p>
+      </div></div>`}
+
+      ${state.options.length > 0 && html`<div className="palette glass" role="toolbar" aria-label="View">
+        <button type="button" className="pal-btn" onClick=${() => view('iso')} title="3D view (1)" aria-label="3D view"><${Icon} name="iso" /></button>
+        <button type="button" className="pal-btn" onClick=${() => view('top')} title="Plan view (2)" aria-label="Plan view"><${Icon} name="top" /></button>
+        <button type="button" className="pal-btn" onClick=${() => view('front')} title="Elevation (3)" aria-label="Elevation view"><${Icon} name="front" /></button>
+        <span className="pal-sep"></span>
+        <button type="button" className=${`pal-btn ${state.display.envelope ? 'is-on' : ''}`} aria-pressed=${state.display.envelope} onClick=${() => dispatch({ type: 'display', patch: { envelope: !state.display.envelope } })} title="Walls and roof (W)" aria-label="Show walls and roof"><${Icon} name="walls" /></button>
+        <button type="button" className=${`pal-btn ${state.display.labels ? 'is-on' : ''}`} aria-pressed=${state.display.labels} onClick=${() => dispatch({ type: 'display', patch: { labels: !state.display.labels } })} title="Gridlines and dimensions (G)" aria-label="Show gridlines and dimensions"><${Icon} name="ruler" /></button>
+      </div>`}
+
+      ${state.busy && html`<div className="gen-chip glass" role="status"><span className="spin spin--sm"></span>${state.busyLabel}</div>`}
+
+      ${active && compareIds.length < 2 && html`<${Inspector} key=${active.id} o=${active} state=${state} dispatch=${dispatch} agent=${agent} ui=${ui} />`}
+      ${active && compareIds.length < 2 && html`<${MetricsStrip} o=${active} state=${state} />`}
+
+      ${rects.map((r, i) => {
+        const o = state.options.find((x) => x.id === compareIds[i]);
+        if (!o) return null;
+        const M = o.result.metrics;
+        const place = rank ? rank.order.indexOf(o.id) + 1 : 0;
+        return html`<div key=${o.id} className="cmp" style=${{ left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` }}>
+          <button type="button" className="cmp-head glass" onClick=${() => { ui.select(o.id); }} title="Open this option">
+            <${MatTile} o=${o} size="sm" /><span>${MATERIALS[o.material].name}</span>
+            ${place === 1 && html`<span className="rank1">Ranks first</span>`}
+          </button>
+          <div className="cmp-foot glass">
+            <div className=${best && M.cost === best.cost ? 'is-best' : ''}><span>Cost</span><strong>${fmt.money(M.cost)}</strong></div>
+            <div className=${best && M.carbon === best.carbon ? 'is-best' : ''}><span>Carbon</span><strong>${fmt.carbon(M.carbon)} t</strong></div>
+            <div className=${best && M.weeks === best.weeks ? 'is-best' : ''}><span>Schedule</span><strong>${fmt.weeks(M.weeks)} wk</strong></div>
+            <div><span>Bays</span><strong>${fmt.bay(M.bayX, M.bayZ)}</strong></div>
+          </div>
+        </div>`;
+      })}
+      ${state.options.length > 0 && compareIds.length < 2 && html`<div className="orbit-hint">Drag to orbit, right-drag to pan, scroll to zoom</div>`}
+    </div>
+  </section>`;
+}
+
+// ------------------------------------------------------------- report ----
+function buildReport(state) {
+  const opts = state.options;
+  const rec = recommendation(opts, state.priority);
+  const order = rec ? rec.order.map((id) => opts.find((o) => o.id === id)) : opts;
+  const best = opts.length > 1 ? bestOf(opts.map((o) => o.result)) : null;
+  const sameSpec = opts.every((o) => JSON.stringify({ ...o.spec, bay: null }) === JSON.stringify({ ...opts[0].spec, bay: null }));
+  const date = new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' });
+  const rows = [
+    ['System', (o) => MATERIALS[o.material].system],
+    ['Design code', (o) => MATERIALS[o.material].code],
+    ...(sameSpec ? [] : [['Footprint', (o) => `${fmt.m(o.spec.length)} × ${fmt.m(o.spec.width)} m, ${storeys(o.spec.floors)}`]]),
+    ['Bay size', (o) => `${fmt.bay(o.result.grid.sx, o.result.grid.sz)} m${o.result.manualBay ? ' (manual)' : ''}`],
+    ['Columns', (o) => `${o.result.metrics.columns}`],
+    ['Cost', (o) => fmt.money(o.result.metrics.cost), 'cost'],
+    ['Cost per m²', (o) => `$${fmt.int(o.result.metrics.costPerM2)}`],
+    ['Embodied carbon', (o) => `${fmt.carbon(o.result.metrics.carbon)} tCO₂e`, 'carbon'],
+    ['Carbon per m²', (o) => `${fmt.int(o.result.metrics.intensity)} kgCO₂e`],
+    ['Schedule', (o) => `${fmt.weeks(o.result.metrics.weeks)} weeks`, 'weeks'],
+    ['Column section', (o) => o.result.sections.column.name],
+  ];
+  const md = [
+    `# Structural options study: ${state.project.name}`,
+    `Prepared ${date} in Structure Studio (prototype). All figures use synthetic factors.`,
+    '',
+    '## Brief',
+    sameSpec && opts[0] ? `${titleCase(opts[0].spec.type)}, ${describeSpec(opts[0].spec)}. Ranked by ${PRIORITIES[state.priority].label.toLowerCase()}.` : `Options use different footprints, listed below. Ranked by ${PRIORITIES[state.priority].label.toLowerCase()}.`,
+    '',
+    '## Options',
+    `| | ${opts.map((o) => `${o.letter} ${matShort(o.material)}`).join(' | ')} |`,
+    `|---|${opts.map(() => '---').join('|')}|`,
+    ...rows.map(([k, f]) => `| ${k} | ${opts.map(f).join(' | ')} |`),
+    '',
+    '## Recommendation',
+    rec ? rec.text : 'Add a second option to get a ranking.',
+    '',
+    '## How the agent chose bay sizes',
+    ...opts.map((o) => `- ${o.letter} ${matShort(o.material)}: tried ${o.result.study.map((s) => `${fmt.bay(s.sx, s.sz)} m`).join(', ')}. Kept ${fmt.bay(o.result.grid.sx, o.result.grid.sz)} m${o.result.manualBay ? ' (set by the user)' : ''}.`),
+    '',
+    '## Assumptions',
+    '- Cost, embodied carbon (A1 to A3, biogenic storage excluded) and schedule use placeholder factors. WSP data replaces them later.',
+    '- Members are sized with span-to-depth rules of thumb, not a structural analysis.',
+    '- Schedule covers foundations and the structural frame only.',
+  ].join('\n');
+  return { rec, order, best, rows, md, date, sameSpec };
+}
+
+function ReportDrawer({ state, onClose, ui }) {
+  const ref = useRef(null);
+  const [copied, setCopied] = useState('');
+  const [showMd, setShowMd] = useState(false);
+  const r = useMemo(() => buildReport(state), [state.options, state.priority, state.project.name]);
+  useEffect(() => {
+    const k = (e) => e.key === 'Escape' && onClose();
+    document.addEventListener('keydown', k);
+    ref.current?.querySelector('.drawer-close')?.focus();
+    return () => document.removeEventListener('keydown', k);
+  }, []);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(r.md); setCopied('Copied'); }
+    catch { setShowMd(true); setCopied('Select the text below to copy it'); setTimeout(() => ref.current?.querySelector('textarea')?.select(), 50); }
+    setTimeout(() => setCopied(''), 2400);
+  };
+  const opts = state.options;
+  return html`<div className="drawer-scrim" onClick=${(e) => e.target === e.currentTarget && onClose()}>
+    <aside className="drawer" ref=${ref} role="dialog" aria-modal="true" aria-label="Comparison report">
+      <header className="drawer-head">
+        <div><h2>Structural options study</h2><p>${state.project.name}, ${r.date}</p></div>
+        <div className="drawer-actions">
+          <button type="button" className="btn btn--ghost btn--sm" onClick=${copy}><${Icon} name="copy" size=${15} />${copied || 'Copy as Markdown'}</button>
+          <button type="button" className="icon-btn drawer-close" aria-label="Close report" onClick=${onClose}><${Icon} name="x" /></button>
+        </div>
+      </header>
+      <div className="drawer-body">
+        ${!opts.length && html`<p className="hint">Generate an option to fill the report.</p>`}
+        ${opts.length > 0 && html`<${React.Fragment}>
+          <section className="rep-sec">
+            <h3>Brief</h3>
+            <p>${r.sameSpec ? `${titleCase(opts[0].spec.type)}, ${describeSpec(opts[0].spec)}.` : 'The options use different footprints, shown in the table.'} Ranked by ${PRIORITIES[state.priority].label.toLowerCase()}.</p>
+          </section>
+          ${r.rec && html`<section className="rep-sec rep-rec">
+            <h3>Recommendation</h3>
+            <p>${r.rec.text}</p>
+          </section>`}
+          <section className="rep-sec">
+            <h3>Options</h3>
+            <div className="table-wrap">
+              <table className="rep-table">
+                <thead><tr><th scope="col"><span className="sr">Metric</span></th>${opts.map((o) => html`<th key=${o.id} scope="col"><span className="th-opt"><${MatTile} o=${o} size="sm" />${matShort(o.material)}</span></th>`)}</tr></thead>
+                <tbody>${r.rows.map(([k, f, key]) => html`<tr key=${k}><th scope="row">${k}</th>${opts.map((o) => html`<td key=${o.id} className=${key && r.best && o.result.metrics[key] === r.best[key] ? 'is-best' : ''}>${f(o)}</td>`)}</tr>`)}</tbody>
+              </table>
+            </div>
+          </section>
+          ${opts.length > 1 && html`<section className="rep-sec">
+            <h3>Trade-offs</h3>
+            <${Bars} opts=${opts} />
+          </section>`}
+          <section className="rep-sec">
+            <h3>How the agent chose bay sizes</h3>
+            <ul className="rep-list">${opts.map((o) => html`<li key=${o.id}><strong>${o.letter} ${matShort(o.material)}.</strong> Tried ${listJoin(o.result.study.map((s) => `${fmt.bay(s.sx, s.sz)} m`))}. Kept ${fmt.bay(o.result.grid.sx, o.result.grid.sz)} m${o.result.manualBay ? ', set by you' : ''}.</li>`)}</ul>
+          </section>
+          <section className="rep-sec">
+            <h3>Assumptions</h3>
+            <ul className="rep-list">
+              <li>Cost, embodied carbon (A1 to A3, biogenic storage excluded) and schedule use placeholder factors. WSP data replaces them later.</li>
+              <li>Members are sized with span-to-depth rules of thumb, not a structural analysis.</li>
+              <li>Schedule covers foundations and the structural frame only.</li>
+            </ul>
+          </section>
+          <section className="rep-sec">
+            <button type="button" className="linkish" onClick=${() => setShowMd((v) => !v)} aria-expanded=${showMd}>${showMd ? 'Hide' : 'Show'} Markdown source</button>
+            ${showMd && html`<textarea className="md" readOnly value=${r.md} aria-label="Report as Markdown"></textarea>`}
+          </section>
+        <//>`}
+      </div>
+    </aside>
+  </div>`;
+}
+
+function Bars({ opts }) {
+  const metrics = [['Cost', 'cost', fmt.money], ['Embodied carbon', 'carbon', (v) => `${fmt.carbon(v)} t`], ['Schedule', 'weeks', (v) => `${fmt.weeks(v)} wk`]];
+  return html`<div className="bars">${metrics.map(([label, k, f]) => {
+    const max = Math.max(...opts.map((o) => o.result.metrics[k]));
+    const min = Math.min(...opts.map((o) => o.result.metrics[k]));
+    return html`<div key=${k} className="bars-group"><div className="bars-label">${label}</div>
+      ${opts.map((o) => html`<div key=${o.id} className="bar-row">
+        <span className="bar-name">${o.letter}</span>
+        <span className="bar-track"><span className=${`bar is-${o.material} ${o.result.metrics[k] === min ? 'is-best' : ''}`} style=${{ width: `${Math.max(4, (o.result.metrics[k] / max) * 100)}%` }}></span></span>
+        <span className="bar-val">${f(o.result.metrics[k])}</span>
+      </div>`)}
+    </div>`;
+  })}</div>`;
+}
+
+// --------------------------------------------------------- walkthrough ---
+const WALK = [
+  { key: 'start', title: 'Enter building requirements', body: 'Type a brief in the chat, then approve the checkpoint.', prompt: 'Generate a 6 m x 4 m wooden shed', fresh: true, done: 'generated' },
+  { key: 'generated', title: 'Watch it generate', body: 'Each tool call shows in the chat while the frame builds in 3D.', done: 'generated' },
+  { key: 'viewed', title: 'View the model', body: 'Drag to orbit, scroll to zoom, or use the plan and elevation buttons.', done: 'viewed' },
+  { key: 'changed', title: 'Request a change', body: 'Ask in chat, or use the panel on the right.', prompt: 'Switch it to steel', done: 'changed' },
+  { key: 'added', title: 'Add a second option', body: 'The first option stays in its tab.', prompt: 'Add a timber version as a new option', done: 'added' },
+  { key: 'managed', title: 'Switch or delete options', body: 'Click a tab, or the × on a tab. Deletes can be undone.', done: 'managed' },
+];
+
+function Walkthrough({ state, onClose, ui }) {
+  const ref = useRef(null);
+  useEnter(ref, true, { y: -8, opacity: 0 });
+  useEffect(() => {
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target) && !e.target.closest?.('[data-walk-toggle]')) onClose(); };
+    document.addEventListener('pointerdown', h);
+    return () => document.removeEventListener('pointerdown', h);
+  }, []);
+  const doneCount = WALK.filter((s) => state.walk[s.done]).length;
+  return html`<div className="walk glass" ref=${ref} role="dialog" aria-label="Walkthrough">
+    <div className="walk-head"><strong>Walkthrough</strong><span>${doneCount} of ${WALK.length} done</span></div>
+    <p className="walk-intro">The six flows from the week 2 task doc, in the order to present them.</p>
+    <ol className="walk-list">
+      ${WALK.map((s, i) => html`<li key=${s.key} className=${state.walk[s.done] ? 'is-done' : ''}>
+        <span className="walk-n">${state.walk[s.done] ? html`<${Icon} name="check" size=${12} stroke=${2.4} />` : i + 1}</span>
+        <div className="walk-main">
+          <div className="walk-title">${s.title}</div>
+          <div className="walk-body">${s.body}</div>
+          ${s.prompt && html`<button type="button" className="linkish" onClick=${() => ui.walkTry(s)}>Fill in “${s.prompt}”</button>`}
+        </div>
+      </li>`)}
+    </ol>
+  </div>`;
+}
+
+// ---------------------------------------------------------------- app ----
+function readTheme() {
+  try { return localStorage.getItem('ss-theme'); } catch { return null; }
+}
+
+function App() {
+  const [state, dispatch] = useReducer(reducer, null, exampleState);
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const viewerRef = useRef(null);
+  const composerRef = useRef(null);
+  const [composer, setComposer] = useState('');
+  const [theme, setTheme] = useState(readTheme);
+  const editNote = useRef({ timer: null });
+
+  const isMobile = () => window.matchMedia('(max-width: 860px)').matches;
+  const agent = useMemo(() => createAgent(() => stateRef.current, dispatch, {
+    showModel: () => { if (isMobile()) dispatch({ type: 'ui', patch: { panel: 'model' } }); },
+    openReport: () => dispatch({ type: 'ui', patch: { report: true } }),
+    reset: () => resetProject(),
+    undo: (t) => undoToast(t),
+  }), []);
+
+  const resetProject = useCallback(() => {
+    agent.clearPending();
+    dispatch({ type: 'reset' });
+    setComposer('');
+  }, []);
+  const undoToast = useCallback((t) => {
+    if (!t?.undo) return;
+    if (t.undo.kind === 'option') dispatch({ type: 'opt/restore', option: t.undo.option, index: t.undo.index });
+    else dispatch({ type: 'restoreProject', snapshot: t.undo.snapshot });
+  }, []);
+
+  const applyTheme = useCallback(() => {
+    const cs = getComputedStyle(document.documentElement);
+    const v = (n) => cs.getPropertyValue(n).trim();
+    viewerRef.current?.setTheme({ gridMinor: v('--grid-minor'), gridMajor: v('--grid-major'), gridline: v('--gridline'), ink3: v('--ink-3'), dark: v('--is-dark') === '1' });
+  }, []);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme) root.setAttribute('data-theme', theme); else root.removeAttribute('data-theme');
+    try { theme ? localStorage.setItem('ss-theme', theme) : localStorage.removeItem('ss-theme'); } catch {}
+    requestAnimationFrame(applyTheme);
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const on = () => requestAnimationFrame(applyTheme);
+    mq.addEventListener?.('change', on);
+    return () => mq.removeEventListener?.('change', on);
+  }, [theme]);
+
+  const effectiveDark = () => getComputedStyle(document.documentElement).getPropertyValue('--is-dark').trim() === '1';
+
+  const ui = useMemo(() => ({
+    fill: (t) => { setComposer(t); requestAnimationFrame(() => composerRef.current?.focus()); },
+    select: (id) => {
+      dispatch({ type: 'active', id });
+      dispatch({ type: 'compare', value: false });
+      dispatch({ type: 'walk', key: 'managed' });
+      if (isMobile()) dispatch({ type: 'ui', patch: { panel: 'model' } });
+    },
+    compare: (v) => { dispatch({ type: 'compare', value: v }); if (v && isMobile()) dispatch({ type: 'ui', patch: { panel: 'model' } }); },
+    openReport: () => dispatch({ type: 'ui', patch: { report: true } }),
+    patchMsg: (id, patch) => dispatch({ type: 'msg/patch', id, patch }),
+    say: (text) => dispatch({ type: 'msg/add', msg: { id: uid('m'), role: 'agent', kind: 'text', text } }),
+    applyTheme,
+    noteEdit: (o, key, spec) => {
+      const n = editNote.current;
+      clearTimeout(n.timer);
+      n.keys = new Set([...(n.optionId === o.id ? n.keys || [] : []), key]);
+      n.optionId = o.id;
+      n.timer = setTimeout(() => {
+        const labels = { length: `length ${fmt.m(spec.length)} m`, width: `width ${fmt.m(spec.width)} m`, storeyHeight: `storey height ${fmt.m(spec.storeyHeight)} m`, floors: storeys(spec.floors), roof: `${spec.roof} roof`, bay: spec.bay ? `${fmt.m(spec.bay)} m bays` : 'agent-picked bays' };
+        const cur = stateRef.current.options.find((x) => x.id === o.id);
+        const s = cur?.spec || spec;
+        const lab = { length: `length ${fmt.m(s.length)} m`, width: `width ${fmt.m(s.width)} m`, storeyHeight: `storey height ${fmt.m(s.storeyHeight)} m`, floors: storeys(s.floors), roof: `${s.roof} roof`, bay: s.bay ? `${fmt.m(s.bay)} m bays` : 'agent-picked bays' };
+        dispatch({ type: 'msg/add', msg: { id: uid('m'), role: 'note', kind: 'note', text: `You set option ${o.letter} to ${listJoin([...n.keys].map((k) => lab[k] || labels[k]))}` } });
+        dispatch({ type: 'walk', key: 'changed' });
+        n.keys = new Set();
+      }, 1100);
+    },
+    walkTry: (s) => {
+      if (s.fresh && stateRef.current.options.length) resetProject();
+      setComposer(s.prompt);
+      dispatch({ type: 'ui', patch: { walk: false, panel: 'chat' } });
+      requestAnimationFrame(() => composerRef.current?.focus());
+    },
+  }), []);
+
+  // Toast auto-dismiss
+  useEffect(() => {
+    if (!state.toast) return;
+    const t = setTimeout(() => dispatch({ type: 'toast', toast: null }), 7000);
+    return () => clearTimeout(t);
+  }, [state.toast?.id]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const k = (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const tag = e.target?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target?.isContentEditable) return;
+      const s = stateRef.current;
+      if (e.key === '/') { e.preventDefault(); composerRef.current?.focus(); }
+      else if (e.key === '1') viewerRef.current?.frame(true, 'iso');
+      else if (e.key === '2') viewerRef.current?.frame(true, 'top');
+      else if (e.key === '3') viewerRef.current?.frame(true, 'front');
+      else if (e.key === 'w' || e.key === 'W') dispatch({ type: 'display', patch: { envelope: !s.display.envelope } });
+      else if (e.key === 'g' || e.key === 'G') dispatch({ type: 'display', patch: { labels: !s.display.labels } });
+      else if (e.key === 'c' || e.key === 'C') ui.compare(!s.compare);
+      else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        const i = s.options.findIndex((o) => o.id === s.activeId);
+        const n = s.options[(i + (e.key === 'ArrowRight' ? 1 : -1) + s.options.length) % s.options.length];
+        if (n) ui.select(n.id);
+      }
+    };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, []);
+
+  const hasOptions = state.options.length > 0;
+  return html`<div className="app" data-panel=${state.ui.panel}>
+    <header className="topbar">
+      <div className="brand"><${BrandMark} /><span className="brand-name">Structure Studio</span></div>
+      <span className="crumb-sep" aria-hidden="true">/</span>
+      <label className="project" htmlFor="project-name">
+        <span className="sr">Project name</span>
+        <input id="project-name" value=${state.project.name} onChange=${(e) => dispatch({ type: 'project', patch: { name: e.target.value } })} spellCheck="false" />
+        ${state.project.example && html`<span className="pill pill--outline pill--tiny">Example</span>`}
+      </label>
+      <div className="topbar-right">
+        <div className="walk-wrap">
+          <button type="button" data-walk-toggle className=${`btn btn--ghost btn--sm ${state.ui.walk ? 'is-on' : ''}`} aria-expanded=${state.ui.walk} onClick=${() => dispatch({ type: 'ui', patch: { walk: !state.ui.walk } })}>
+            <${Icon} name="list" size=${16} /><span className="hide-sm">Walkthrough</span>
+          </button>
+          ${state.ui.walk && html`<${Walkthrough} state=${state} ui=${ui} onClose=${() => dispatch({ type: 'ui', patch: { walk: false } })} />`}
+        </div>
+        <button type="button" className="btn btn--ghost btn--sm" disabled=${!hasOptions} onClick=${ui.openReport}><${Icon} name="doc" size=${16} /><span className="hide-sm">Report</span></button>
+        <button type="button" className="icon-btn" aria-label="Switch colour theme" title="Switch colour theme" onClick=${() => setTheme(effectiveDark() ? 'light' : 'dark')}><${Icon} name=${theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'sun' : 'moon'} /></button>
+        <button type="button" className="btn btn--secondary btn--sm" onClick=${resetProject}><${Icon} name="newdoc" size=${16} /><span className="hide-sm">New project</span></button>
+      </div>
+    </header>
+    <nav className="mobile-switch" aria-label="Panels">
+      <${Segmented} label="Panel" value=${state.ui.panel} onChange=${(v) => dispatch({ type: 'ui', patch: { panel: v } })}
+        options=${[{ value: 'chat', label: 'Chat' }, { value: 'model', label: hasOptions ? `Model (${state.options.length})` : 'Model' }]} />
+    </nav>
+    <main className="main">
+      <${Chat} state=${state} agent=${agent} ui=${ui} composer=${composer} setComposer=${setComposer} composerRef=${composerRef} />
+      <${ViewerPanel} state=${state} dispatch=${dispatch} agent=${agent} ui=${ui} viewerRef=${viewerRef} />
+    </main>
+    ${state.ui.report && html`<${ReportDrawer} state=${state} ui=${ui} onClose=${() => dispatch({ type: 'ui', patch: { report: false } })} />`}
+    ${state.toast && html`<div className="toast" role="status" key=${state.toast.id}>
+      <span>${state.toast.text}</span>
+      ${state.toast.undo && html`<button type="button" className="toast-btn" onClick=${() => undoToast(state.toast)}><${Icon} name="undo" size=${15} />Undo</button>`}
+      <button type="button" className="icon-btn icon-btn--sm" aria-label="Dismiss" onClick=${() => dispatch({ type: 'toast', toast: null })}><${Icon} name="x" size=${14} /></button>
+    </div>`}
+  </div>`;
+}
+
+ReactDOM.createRoot(document.getElementById('app')).render(html`<${App} />`);
+
+</script>
