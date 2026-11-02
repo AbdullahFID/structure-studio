@@ -17,3 +17,9 @@ No backend. The "agent" is a local script that calls the engine the way real too
 4. Replace `createAgent()` with calls to your agent API. Keep the same message kinds (trace, spec, result, change) so the UI does not change.
 
 All numbers are synthetic placeholders until WSP shares real data.
+
+## Live / deploy
+- Live: https://structure-studio-lime.vercel.app
+- Hosted on Vercel (static). `vercel.json` runs `python3 build.py` and serves `dist/` (`dist/index.html` is the entry point).
+- Every push to `main` deploys to production; pushes to other branches get a preview URL.
+- Local: `python3 build.py`, then open `dist/index.html` (or `npx serve dist`).
