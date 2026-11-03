@@ -1,0 +1,188 @@
+/* Design tokens.
+   Two looks share every component: "drafting" (linework on paper) and "studio" (a model under light).
+   Each has a light and a dark theme. Colour comes from the three materials; the UI itself stays ink and paper.
+   The one accent is cyanotype blue, the pigment of real blueprints, used for the drafting layer and focus. */
+
+:root {
+  --font-ui: 'Mona Sans Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Hubot Sans Variable', 'Mona Sans Variable', ui-sans-serif, system-ui, sans-serif;
+
+  --fs-12: 12px;
+  --fs-14: 14px;
+  --fs-16: 16px;
+  --fs-20: 20px;
+  --fs-28: 28px;
+  --fs-40: 40px;
+  --fs-64: 64px;
+
+  --r-xs: 4px;
+  --r-sm: 7px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+  --r-pill: 999px;
+
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur: 160ms;
+
+  --timber: #b97b3d;
+  --concrete: #8d9498;
+  --steel: #ad4c36;
+  --timber-ink: rgb(70 36 6 / 0.5);
+  --concrete-ink: rgb(20 24 28 / 0.42);
+  --steel-ink: rgb(255 255 255 / 0.42);
+
+  /* drafting, light (default) */
+  --desk: #e9eceb;
+  --paper: #fbfbfa;
+  --raised: #ffffff;
+  --sunk: #f0f2f1;
+  --ink: #15191c;
+  --ink-2: #454c51;
+  --ink-3: #5f666c;
+  --ink-4: #8b9297;
+  --rule: #d6dbd9;
+  --rule-2: #e5e9e7;
+  --accent: #1f4a8a;
+  --accent-soft: rgb(31 74 138 / 0.08);
+  --gridline: #2a5aa0;
+  --grid-minor: #e1e5e4;
+  --grid-major: #c5cccb;
+  --good: #1d6a44;
+  --good-soft: rgb(29 106 68 / 0.1);
+  --warn: #8a5a0a;
+  --warn-soft: rgb(138 90 10 / 0.1);
+  --bad: #a8291f;
+  --primary: #15191c;
+  --primary-ink: #fbfbfa;
+  --primary-hover: #2b3237;
+  --bubble-user: rgb(21 25 28 / 0.06);
+  --shadow-sm: 0 1px 2px rgb(16 24 32 / 0.06);
+  --shadow-md: 0 10px 30px -12px rgb(16 24 32 / 0.22), 0 2px 6px -2px rgb(16 24 32 / 0.06);
+  --shadow-lg: 0 28px 70px -24px rgb(16 24 32 / 0.35);
+  --scrim: rgb(14 18 22 / 0.32);
+  --glass-nav: rgb(251 251 250 / 0.78);
+  --glass-card: rgb(251 251 250 / 0.7);
+  --glass-solid: #f6f7f6;
+  --glass-edge: rgb(255 255 255 / 0.08);
+  --glass-line: rgb(16 24 32 / 0.08);
+  --stage-bg: var(--paper);
+  color-scheme: light;
+}
+
+/* drafting, dark: a night sheet on slate */
+:root[data-theme='dark'] {
+  --desk: #020617;
+  --paper: #0c1322;
+  --raised: #121a2c;
+  --sunk: #0a1020;
+  --ink: #e6ebf2;
+  --ink-2: #b6c0cd;
+  --ink-3: #8f9bab;
+  --ink-4: #66717f;
+  --rule: rgb(148 163 184 / 0.18);
+  --rule-2: rgb(148 163 184 / 0.1);
+  --accent: #8db4f2;
+  --accent-soft: rgb(141 180 242 / 0.12);
+  --gridline: #7fa7ea;
+  --grid-minor: #172033;
+  --grid-major: #233049;
+  --good: #6fcf9b;
+  --good-soft: rgb(111 207 155 / 0.12);
+  --warn: #e8b766;
+  --warn-soft: rgb(232 183 102 / 0.12);
+  --bad: #ff8b80;
+  --primary: #e6ebf2;
+  --primary-ink: #0c1322;
+  --primary-hover: #ffffff;
+  --bubble-user: rgb(148 163 184 / 0.12);
+  --timber: #cf9254;
+  --concrete: #a3abb1;
+  --steel: #d26d55;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 14px 36px -14px rgb(0 0 0 / 0.7);
+  --shadow-lg: 0 30px 80px -24px rgb(0 0 0 / 0.8);
+  --scrim: rgb(2 6 23 / 0.6);
+  --glass-nav: rgb(30 41 59 / 0.62);
+  --glass-card: rgb(15 23 42 / 0.58);
+  --glass-solid: #111a2b;
+  --glass-line: rgb(255 255 255 / 0.08);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --desk: #020617;
+    --paper: #0c1322;
+    --raised: #121a2c;
+    --sunk: #0a1020;
+    --ink: #e6ebf2;
+    --ink-2: #b6c0cd;
+    --ink-3: #8f9bab;
+    --ink-4: #66717f;
+    --rule: rgb(148 163 184 / 0.18);
+    --rule-2: rgb(148 163 184 / 0.1);
+    --accent: #8db4f2;
+    --accent-soft: rgb(141 180 242 / 0.12);
+    --gridline: #7fa7ea;
+    --grid-minor: #172033;
+    --grid-major: #233049;
+    --good: #6fcf9b;
+    --good-soft: rgb(111 207 155 / 0.12);
+    --warn: #e8b766;
+    --warn-soft: rgb(232 183 102 / 0.12);
+    --bad: #ff8b80;
+    --primary: #e6ebf2;
+    --primary-ink: #0c1322;
+    --primary-hover: #ffffff;
+    --bubble-user: rgb(148 163 184 / 0.12);
+    --timber: #cf9254;
+    --concrete: #a3abb1;
+    --steel: #d26d55;
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 14px 36px -14px rgb(0 0 0 / 0.7);
+    --shadow-lg: 0 30px 80px -24px rgb(0 0 0 / 0.8);
+    --scrim: rgb(2 6 23 / 0.6);
+    --glass-nav: rgb(30 41 59 / 0.62);
+    --glass-card: rgb(15 23 42 / 0.58);
+    --glass-solid: #111a2b;
+    --glass-line: rgb(255 255 255 / 0.08);
+    color-scheme: dark;
+  }
+}
+
+/* studio, light: a pale cyclorama */
+:root[data-look='studio'] {
+  --desk: #dde1e6;
+  --paper: #f3f5f7;
+  --stage-bg: radial-gradient(120% 90% at 58% 38%, #fbfcfd 0%, #eceff3 48%, #d9dee4 100%);
+  --glass-nav: rgb(255 255 255 / 0.72);
+  --glass-card: rgb(255 255 255 / 0.62);
+  --glass-solid: #f5f6f8;
+  --glass-line: rgb(15 23 42 / 0.09);
+  --grid-minor: #d8dde2;
+  --grid-major: #c2c9d0;
+}
+
+/* studio, dark: a model under a single light on slate */
+:root[data-look='studio'][data-theme='dark'] {
+  --desk: #020617;
+  --paper: #0b1220;
+  --stage-bg: radial-gradient(90% 80% at 56% 42%, #1a2436 0%, #0b1220 52%, #020617 100%);
+  --glass-nav: rgb(30 41 59 / 0.55);
+  --glass-card: rgb(15 23 42 / 0.52);
+  --glass-solid: #0f1729;
+  --glass-line: rgb(255 255 255 / 0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-look='studio']:not([data-theme='light']) {
+    --desk: #020617;
+    --paper: #0b1220;
+    --stage-bg: radial-gradient(90% 80% at 56% 42%, #1a2436 0%, #0b1220 52%, #020617 100%);
+    --glass-nav: rgb(30 41 59 / 0.55);
+    --glass-card: rgb(15 23 42 / 0.52);
+    --glass-solid: #0f1729;
+    --glass-line: rgb(255 255 255 / 0.08);
+  }
+}

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en-CA">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex" />
+    <meta name="description" content="Structure Studio: describe a building and compare timber, concrete and steel framing options with cost, embodied carbon and schedule. QMIND x WSP prototype." />
+    <meta name="theme-color" content="#eceeed" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#070b14" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Structure Studio</title>
+    <script>
+      // Apply the saved look and theme before first paint so nothing flashes.
+      try {
+        var d = document.documentElement;
+        var look = new URLSearchParams(location.search).get('look') || localStorage.getItem('ss-look') || 'drafting';
+        if (look !== 'studio') look = 'drafting';
+        d.dataset.look = look;
+        var t = localStorage.getItem('ss-theme');
+        if (t === 'dark' || t === 'light') d.dataset.theme = t;
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript><p style="padding: 24px; font: 16px system-ui">Structure Studio needs JavaScript to run.</p></noscript>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

@@ -1,4 +1,4 @@
-import * as E from '../src/engine.js';
+import * as E from '../src/engine/engine.js';
 const cases = [
   ['Shed 6x4x3 gable', { type:'shed', length:6, width:4, storeyHeight:3, floors:1, roof:'gable' }],
   ['Workshop 30x12x4.5 gable', { length:30, width:12, storeyHeight:4.5, floors:1, roof:'gable' }],

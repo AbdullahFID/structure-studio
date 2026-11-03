@@ -1,25 +1,31 @@
 # Structure Studio (QMIND x WSP frontend prototype)
 
-Frontend-only demo for the Week 2 task: chatbot on the left, 3D viewer on the right.
-No backend. The "agent" is a local script that calls the engine the way real tools would.
+Describe a building in plain words. A scripted agent lays out a column grid for mass timber, reinforced concrete
+and structural steel, sizes the members, and compares cost, embodied carbon and schedule. Each option is drawn in 3D
+with drafting gridlines and dimensions. There is no backend yet and all figures are synthetic.
 
-## Files
-- `src/engine.js`: pure functions: brief parser, bay study, member sizing, synthetic cost / carbon / schedule, ranking, geometry description. No DOM, so it can move to a Next.js API route or backend as is.
-- `src/viewer.js`: three.js viewer: one scene per option, instanced members, drafting gridlines (CSS2D), build animation, split-screen compare.
-- `src/app.js`: React 18 UI (htm tagged templates, no build step). `createAgent()` is the only part to swap for a real orchestrator.
-- `src/styles.css`: design tokens (light + dark) and components.
-- `build.py`: inlines everything into `dist/structure-studio.html`.
-
-## Porting to Next.js
-1. `engine.js` → `lib/engine.ts` (add types, logic unchanged).
-2. `viewer.js` → keep as a class and mount it in a client component, or rewrite the scene in React Three Fiber.
-3. `app.js` components → `.tsx` files (htm templates map 1:1 to JSX).
-4. Replace `createAgent()` with calls to your agent API. Keep the same message kinds (trace, spec, result, change) so the UI does not change.
-
-All numbers are synthetic placeholders until WSP shares real data.
-
-## Live / deploy
 - Live: https://structure-studio-lime.vercel.app
-- Hosted on Vercel (static). `vercel.json` runs `python3 build.py` and serves `dist/` (`dist/index.html` is the entry point).
-- Every push to `main` deploys to production; pushes to other branches get a preview URL.
-- Local: `python3 build.py`, then open `dist/index.html` (or `npx serve dist`).
+- Two looks to choose from: **Drafting** (linework on a paper sheet) and **Studio** (the model under light with glass
+  panels). Switch in the top bar, or open `?look=studio`.
+
+## Run it
+
+```bash
+pnpm install
+pnpm dev            # http://localhost:5199
+pnpm build          # production build in dist/
+pnpm test           # lint, engine checks, build, browser checks
+```
+
+Browser checks need `pnpm exec playwright install chromium webkit` once. Screenshots land in `test/shots/`.
+
+## Layout
+
+- `src/engine/engine.js`: pure functions (parser, bay study, member sizing, synthetic metrics, geometry). Moves to a backend or API route as is.
+- `src/viewer/`: the three.js viewer and its colour palette.
+- `src/agent/agent.js`: the scripted agent. `createAgent()` is the only part to swap for a real orchestrator; keep the same message kinds and tool names.
+- `src/state/`, `src/components/`, `src/styles/`: React 19 UI, store and design tokens.
+
+## Deploy
+
+Vercel builds from `vercel.json` (`pnpm build`, output `dist/`). Pushing `main` deploys production; other branches get a preview URL.
