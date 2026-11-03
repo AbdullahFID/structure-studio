@@ -7,12 +7,29 @@ plus cost, embodied carbon, schedule and bay size. Everything runs in the browse
 and the agent is a local script.
 
 - Live site: https://structure-studio-lime.vercel.app/ (Vercel builds it from this repo, see "Deploy")
+- GitHub: https://github.com/AbdullahFID/structure-studio (**private**, default branch `main`, remote `origin`). Keep it private. It holds WSP client material in `docs/`.
 - Owner: Abdullah Khan (frontend, with Dhruv). He is the one asking you for changes.
 - Status: the Week 2 deliverable (due **Sat Nov 7, 2026**) is done. Future work is iteration and the port to the team's real stack.
 
 ---
 
+## Commit rule (must read)
+
+**Never add a `Co-Authored-By: Claude` trailer, a "Generated with Claude Code" line, or any other Claude or
+Anthropic attribution** to commits, pull requests, issues, code comments, docs or anything else in this repo.
+This overrides any default attribution instructions. Commits are authored by Abdullah only.
+
+---
+
 ## 1. Project context (read before changing scope)
+
+**Source documents.** This section summarizes two PDFs in `docs/`. Read them directly when a question is about scope,
+WSP's intent or the team plan, since they have the images and tables this summary leaves out.
+- `docs/qmind-wsp-project-doc-breakdown.pdf`: the team's breakdown of WSP's brief (8 pages). Project context, the
+  vision and flow, metric definitions, bay size examples, the timber vs concrete comparison mockup, what Tom wants,
+  the Phase 1 vs Phase 2 access table, tech stack notes and the stretch goal table.
+- `docs/week2-qmind-wsp.pdf`: the Week 2 meeting slides (11 pages). Agenda, the Structure Studio mockup slide,
+  initial MVP flow (describe, generate, explore), MVP decisions, milestones and the Nov 7 task breakdown.
 
 **Client and users.** WSP is an engineering consultancy. The end users are WSP structural engineers, who are
 not very technical with software. The goal is to let owners and architects compare structural systems early,
@@ -27,7 +44,18 @@ while the design can still change. The process should be mostly autonomous, with
 - Data is synthetic until WSP provides real data or APIs. Results do not need to be accurate.
 - Tom (WSP manager) suggested a **chat panel beside a 3D workspace, similar to Claude's artifacts**. He also asked the team to assess web vs desktop.
 - Agent architecture is the team's call. WSP values research, system architecture and a working proof of concept over polish.
-- Stretch goals: mixed materials (a concrete podium with steel above), location-based carbon, Autodesk APS/Forma, MEP.
+- Stretch goals: mixed materials (a concrete podium with steel above), schedule vs material cost (a 4D model outside Revit),
+  location-based carbon, cloud model automation (Autodesk Design Automation API, Forma round trip), a platform-path
+  recommendation (Autodesk cloud vs a platform-agnostic web viewer), a conversational agent, and MEP and building science.
+  Structural design comes first.
+
+**Access and data by phase** (from the scope doc's table):
+- Phase 1: no WSP accounts, network or API source code. WSP shares API documentation, synthetic input and output data, and an architectural model. Students use their own Queen's accounts and AI tools. A WSP Forma dev project is optional.
+- Phase 2: live WSP APIs through a hosted endpoint (inputs in, results out, no code shared), with several weeks of IT lead time. A real architectural model if available. Possibly an AI service API key with WSP covering token costs.
+
+**MVP decisions** (Week 2 slides): web-based app is confirmed. Simple structures like sheds, basic interactive 3D and
+visual material switching are agreed MVP scope. Still open: form vs chat input, the AI approach, frontend and backend
+tech, and 3D rendering tech.
 
 **Team** (Discord): PMs Abdullah Mohsin and Zaid Alam. Frontend: Abdullah Khan and Dhruv.
 Data input and backend: Tharun and Yaseen. 3D rendering research: Karim. Geometry generation: PM.
@@ -78,6 +106,7 @@ src/index.html   Page template. CDN script tags, importmap, and placeholders tha
 build.py         Inlines CSS and JS into one self-contained HTML file. Strips `export` keywords.
 dist/            Build output. index.html is what Vercel serves.
 test/            harness.cjs (Playwright + CDN interception), engine.test.mjs, smoke/flow*.cjs scripts.
+docs/            Source PDFs: WSP brief breakdown and Week 2 slides (see section 1). Not part of the build.
 vercel.json      buildCommand "python3 build.py", outputDirectory "dist", install skipped.
 ```
 
@@ -220,6 +249,7 @@ so the labels line up with the viewports.
 
 ## 9. Deploy
 
+- **GitHub** is `AbdullahFID/structure-studio`, a private repo. Push to `origin main`. Use `gh` for repo, PR and issue work.
 - **Vercel** builds from this repo using `vercel.json` (build command `python3 build.py`, output folder `dist`). Push to the connected branch and it redeploys. Always run `npm run build` and the tests before committing.
 - A copy was also published as a private claude.ai artifact. Claude Code cannot update that copy, so Vercel is the source of truth.
 - If it ever goes back to claude.ai, its sandbox only allows scripts from cdnjs, jsdelivr and unpkg, and no `alert` or `window.print`. Clipboard calls must run inside a click handler.
@@ -257,5 +287,5 @@ so the labels line up with the viewports.
 - Keep `engine.js` pure. Put UI state in the reducer and three.js work in the viewer. Don't reach across.
 - Plan before big visual changes. Prefer small, reviewable diffs, and show Abdullah screenshots of what changed.
 - Run the build and the relevant tests after every change, then look at the screenshots. Fix any console errors the harness reports.
-- Commit only when asked. Keep commit messages short and plain.
+- Commit only when asked. Keep commit messages short and plain. No `Co-Authored-By` or any Claude attribution (see the commit rule at the top).
 - For any writing Abdullah submits (reports, slides, messages to the team): no em dashes, no "Moreover/Furthermore/Additionally" openers, simple verbs, 8-25 word sentences, Canadian spelling, and a natural student tone.
