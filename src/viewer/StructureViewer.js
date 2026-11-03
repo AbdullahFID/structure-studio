@@ -13,6 +13,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import gsap from 'gsap';
 import { buildGeometry } from '../engine/engine.js';
 import { faceColor, edgeStyle, lookParams, BASE, PANEL_ROLES } from './palette.js';
+import { startCrew } from './crew.js';
 
 const STRUCT_ROLES = ['footing', 'column', 'beam', 'girder', 'infill', 'brace', 'slab', 'roofslab', 'rafter', 'purlin', 'roofdeck'];
 const ENV_ROLES = ['wall', 'glass', 'door'];
@@ -222,6 +223,7 @@ export class StructureViewer {
     this.paused = false;
     this.layoutKey = '';
     this.insets = { ...NO_INSETS };
+    this.cmpPad = { ...NO_INSETS }; // room each compare view keeps for its name and figures
     this.reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     // Phones and tablets: fewer pixels and a smaller shadow map keep orbiting smooth.
     this.coarse = !!window.matchMedia?.('(pointer: coarse)').matches;
@@ -532,15 +534,20 @@ export class StructureViewer {
 
   // A quiet linework model: the example behind the start screen, or a ghost
   // of the brief while it waits for approval. Edits swap it without replaying.
-  setPreview(result, { animate = true } = {}) {
+  // `crew` ({ layer, handoff }) has the drafting crew draw it (see crew.js).
+  setPreview(result, { animate = true, crew = null } = {}) {
     const old = this.entries.get(PREVIEW_ID);
     if (old) this.disposeEntry(PREVIEW_ID, old);
     if (result) {
-      const e = this.buildEntry({ id: PREVIEW_ID, version: 0, material: result.material, result }, { preview: true });
+      const withCrew = !!crew && animate && !this.reduced;
+      const e = this.buildEntry({ id: PREVIEW_ID, version: 0, material: result.material, result }, { preview: true, sweep: withCrew });
       this.entries.set(PREVIEW_ID, e);
       e.stage = 'build';
       if (this.reduced || !animate) this.setProgress(e, 1);
-      else {
+      else if (withCrew) {
+        this.crew = startCrew(this, e, result, { ...crew, onDone: () => { this.crew = null; e.tween = null; } });
+        e.tween = this.crew.tl;
+      } else {
         this.setProgress(e, 0);
         e.gridMat.uniforms.uProgress.value = 0;
         this.anims++;
@@ -562,7 +569,7 @@ export class StructureViewer {
   }
 
   // ---------------------------------------------------------------- build --
-  buildEntry(o, { preview = false } = {}) {
+  buildEntry(o, { preview = false, sweep = false } = {}) {
     const geo = buildGeometry(o.result);
     const { L, W, top } = geo.bounds;
     const ext = Math.max(L, W, top * 1.2);
@@ -672,10 +679,14 @@ export class StructureViewer {
 
     const gridGroup = new THREE.Group();
     const xs = geo.grid.xs, zs = geo.grid.zs;
-    const spread = (i, n) => (n <= 1 ? 0 : 0.45 * Math.abs(i - (n - 1) / 2) / ((n - 1) / 2));
+    // Lines draw from the centre out, or left to right and back to front when the crew sets them out.
+    const spread = sweep
+      ? (i, n) => (n <= 1 ? 0 : (0.45 * i) / (n - 1))
+      : (i, n) => (n <= 1 ? 0 : 0.45 * Math.abs(i - (n - 1) / 2) / ((n - 1) / 2));
+    const zBack = -W / 2 - off - 0.8 * k, xTip = xRight + bub - 0.48 * k;
     const gridSegs = [
-      ...xs.map((x, i) => ({ a: [x, y, -W / 2 - off - 0.8 * k], b: [x, y, zFront + bub - 0.48 * k], delay: spread(i, xs.length) })),
-      ...zs.map((z, j) => ({ a: [-L / 2 - off - 0.8 * k, y, z], b: [xRight + bub - 0.48 * k, y, z], delay: 0.05 + spread(j, zs.length) })),
+      ...xs.map((x, i) => ({ a: [x, y, zBack], b: [x, y, zFront + bub - 0.48 * k], delay: spread(i, xs.length) })),
+      ...zs.map((z, j) => ({ a: [-L / 2 - off - 0.8 * k, y, z], b: [xTip, y, z], delay: 0.05 + spread(j, zs.length) })),
     ];
     const gridMat = makeDraftMaterial({ mode: 0, scale: 0.9 * k, window: 0.5 });
     gridGroup.add(new THREE.LineSegments(draftGeometry(gridSegs), gridMat));
@@ -728,6 +739,8 @@ export class StructureViewer {
       id: o.id, version: o.version, material: o.material, preview, scene, building, parts, gableEnds, draft,
       footprint, fpFill, gridGroup, gridMat, footMat, dims, dimMat, labelEls,
       ground, shadow, hemi, sun, geo, bounds: geo.bounds, u: 1, stage: null, tween: null,
+      marks: { xs, zs, y, zBack, xEdge: xRight + 0.6 * k },
+      previewPad: 1.2 * bub,
       // The preview draws no dimension strings, so it can be framed tighter.
       radius: preview ? 0.5 * Math.hypot(L + 1.2 * bub, W + 1.2 * bub, top) + 0.5 : 0.5 * Math.hypot(L + 2 * dim2, W + 2 * dim2, top) + 1,
     };
@@ -841,7 +854,8 @@ export class StructureViewer {
   }
 
   disposeEntry(id, e) {
-    if (e.tween) { e.tween.kill(); this.anims = Math.max(0, this.anims - 1); }
+    if (id === PREVIEW_ID && this.crew) { this.crew.dispose(); this.crew = null; }
+    else if (e.tween) { e.tween.kill(); this.anims = Math.max(0, this.anims - 1); }
     e.gridTween?.kill();
     const shared = new Set([...this.faceMats.values(), ...this.edgeMats.values()]);
     e.scene.traverse((o) => {
@@ -867,10 +881,17 @@ export class StructureViewer {
     this.emitLayout();
   }
 
+  // Compare views keep a band at the top and bottom for their labels, so each model is framed between them.
+  setComparePad(p) {
+    if (p.top === this.cmpPad.top && p.bottom === this.cmpPad.bottom) return;
+    this.cmpPad = { ...NO_INSETS, top: p.top, bottom: p.bottom };
+    if (this.compareIds.length > 1 && this.framed) this.frame(!!this.camTween);
+    this.dirty = true;
+  }
+
   applyOffset(v, single) {
     const cam = this.camera;
-    if (!single) { cam.clearViewOffset(); return; }
-    const { left, right, top, bottom } = this.insets;
+    const { left, right, top, bottom } = single ? this.insets : this.cmpPad;
     const dx = (right - left) / 2, dy = (bottom - top) / 2;
     if (Math.abs(dx) < 1 && Math.abs(dy) < 1) cam.clearViewOffset();
     else cam.setViewOffset(v.w, v.h, dx, dy, v.w, v.h);
@@ -899,16 +920,25 @@ export class StructureViewer {
     const topY = Math.max(...es.map((e) => e.bounds.top));
     const rects = this.viewRects();
     const single = rects.length === 1;
-    const ins = single ? this.insets : { top: 0, right: 0, bottom: 0, left: 0 };
+    const ins = single ? this.insets : this.cmpPad;
     const r0 = rects[0];
     const sw = Math.max(80, r0.w - ins.left - ins.right), sh = Math.max(80, r0.h - ins.top - ins.bottom);
-    const aspect = single ? sw / sh : Math.min(...rects.map((r) => r.w / Math.max(1, r.h)));
+    const aspect = single ? sw / sh : Math.min(...rects.map((r) => r.w / Math.max(1, r.h - ins.top - ins.bottom)));
     const vf0 = THREE.MathUtils.degToRad(this.camera.fov / 2);
-    const vf = single ? Math.atan(Math.tan(vf0) * (sh / Math.max(1, r0.h))) : vf0;
+    const vf = Math.atan(Math.tan(vf0) * (sh / Math.max(1, r0.h)));
     const hf = Math.atan(Math.tan(vf) * aspect);
     const preview = es[0].preview;
-    const dist = (radius / Math.sin(Math.min(vf, hf))) * (preview ? 0.9 : single ? (aspect < 1.1 ? 1.0 : 0.88) : 0.95);
     const d = new THREE.Vector3(...VIEW_DIRS[view]).normalize();
+    let dist = (radius / Math.sin(Math.min(vf, hf))) * (single ? (aspect < 1.1 ? 1.0 : 0.88) : 0.95);
+    if (preview) {
+      // The preview turns, so fit the circle it sweeps rather than a sphere: a long, low building
+      // in a short, wide strip (the Studio start screen) can then be drawn much larger without clipping.
+      const { L, W, top } = es[0].bounds, pad = es[0].previewPad;
+      const sweep = 0.5 * Math.hypot(L + pad, W + pad);
+      const el = Math.asin(THREE.MathUtils.clamp(d.y, -1, 1));
+      const halfH = sweep * Math.sin(el) + 0.5 * top * Math.cos(el);
+      dist = Math.max(sweep / Math.tan(hf), halfH / Math.tan(vf)) + 0.3 * sweep;
+    }
     const target = new THREE.Vector3(0, view === 'top' ? 0 : topY * 0.32, 0);
     const pos = target.clone().addScaledVector(d, dist);
     this.controls.minDistance = radius * 0.4;
@@ -1028,7 +1058,7 @@ export class StructureViewer {
     // Compare views do not cover the whole canvas, so clear it first or the last single view lingers in the gaps.
     if (!single) { r.setScissorTest(false); r.clear(); }
     r.setScissorTest(!single);
-    let labelled = null;
+    let labelled = null, crewView = false;
     for (const v of rects) {
       const e = this.entries.get(v.id);
       r.setViewport(v.x, this.height - v.y - v.h, v.w, v.h);
@@ -1039,8 +1069,10 @@ export class StructureViewer {
       this.camera.updateProjectionMatrix();
       r.render(e.scene, this.camera);
       if (single && !e.preview) labelled = e;
+      if (single && e.preview) crewView = true;
     }
     r.setScissorTest(false);
+    if (crewView && this.crew) this.crew.update(this.camera, this.width, this.height);
     // Always render the labels of the shown option: CSS2D only hides labels of a hidden group when it renders.
     if (labelled) this.labels.render(labelled.scene, this.camera);
   }

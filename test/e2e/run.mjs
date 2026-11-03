@@ -11,6 +11,9 @@ const runs = [
   ['mobile.mjs', 'studio', 'dark'],
   ['look.mjs'],
   ['edge.mjs'],
+  ['crew.mjs', 'drafting', 'light'],
+  ['crew.mjs', 'studio', 'dark'],
+  ['motion.mjs'],
 ];
 let failed = 0;
 for (const [file, ...args] of runs) {

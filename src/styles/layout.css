@@ -70,7 +70,9 @@
 /* ----------------------------------------------------------- conversation */
 .convo {
   view-transition-name: convo;
+  /* A view-transition-name makes a stacking context, so the panel needs to sit above the sheet for the splitter to reach over it. */
   position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   min-height: 0;

@@ -66,7 +66,11 @@ export function Stage({ state, dispatch, agent, ui, viewerRef, children }) {
     const d = JSON.parse(previewKey);
     const replay = lastPreview.current !== d.id;
     lastPreview.current = d.id;
-    v.setPreview(computeOption(d.spec, d.material, 'balanced'), { animate: replay });
+    // The example on the start screen is drawn by the crew, who then hand over to the message box.
+    const crew = d.id === 'example' && replay
+      ? { layer: areaRef.current, handoff: () => document.querySelector('.start-box textarea')?.getBoundingClientRect() }
+      : null;
+    v.setPreview(computeOption(d.spec, d.material, 'balanced'), { animate: replay, crew });
   }, [previewKey, viewerRef]);
   const waiting = state.view === 'work' && !state.options.length && !pending;
 
@@ -90,8 +94,12 @@ export function Stage({ state, dispatch, agent, ui, viewerRef, children }) {
       if (!r.width || !r.height || cs.display === 'none' || cs.visibility === 'hidden') continue;
       if (r.right <= sr.left || r.left >= sr.right || r.bottom <= sr.top || r.top >= sr.bottom) continue;
       let side = el.dataset.inset;
-      // A panel that moves (Adjust can be dragged) counts on whichever side its centre is.
-      if (side === 'auto') side = r.left + r.width / 2 < sr.left + sr.width / 2 ? 'left' : 'right';
+      // A panel that moves (Adjust can be dragged) only claims room when it is parked against a side.
+      // Dragged into the middle it floats, so the model does not shrink into the gap beside it.
+      if (side === 'auto') {
+        side = r.left - sr.left < 140 ? 'left' : sr.right - r.right < 140 ? 'right' : '';
+        if (!side) continue;
+      }
       // A side panel that spans the sheet (the phone bottom sheet) covers the bottom, not the side.
       if ((side === 'right' || side === 'left') && r.width > sr.width * 0.6) side = 'bottom';
       if (side === 'left') ins.left = Math.max(ins.left, r.right - sr.left + 8);
@@ -100,6 +108,13 @@ export function Stage({ state, dispatch, agent, ui, viewerRef, children }) {
       else if (side === 'top') ins.top = Math.max(ins.top, r.bottom - sr.top + 4);
     }
     v.setInsets(ins);
+    // Each compare view frames its model between its name and its figures.
+    const c = stage.querySelector('.cmp:not(.is-leaving)');
+    const head = c?.querySelector('.cmp-head'), foot = c?.querySelector('.cmp-foot');
+    if (c && head && foot) {
+      const cr = c.getBoundingClientRect();
+      v.setComparePad({ top: Math.round(head.getBoundingClientRect().bottom - cr.top + 6), bottom: Math.round(cr.bottom - foot.getBoundingClientRect().top + 6) });
+    }
   });
 
   const onView = (v) => {

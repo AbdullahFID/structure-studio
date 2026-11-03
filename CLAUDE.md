@@ -100,6 +100,8 @@ node test/e2e/flows.mjs drafting light        # the six Week 2 flows with assert
 node test/e2e/mobile.mjs studio dark          # 390 px in WebKit, then a reduced-motion pass
 node test/e2e/look.mjs                        # start screen and example project in all four look/theme pairs
 node test/e2e/edge.mjs                        # 320 px, keyboard focus
+node test/e2e/crew.mjs studio dark            # the start-screen crew, desktop and phone, hurry and reduced motion
+node test/e2e/motion.mjs                      # compare layout, splitter, Adjust drag, glides, theme reveal, phone dock
 ```
 
 The e2e scripts start `vite preview` on a free port, so run `pnpm build` first. Screenshots land in `test/shots/`
@@ -116,6 +118,7 @@ src/main.jsx                 Mounts <App /> and imports the fonts and stylesheet
 src/engine/engine.js         Pure functions: parser, bay study, member sizing, synthetic metrics, ranking, geometry. No DOM.
 src/viewer/StructureViewer.js  three.js viewer: one scene per option, instanced members and instanced ink edges,
                              chain gridlines that draw on, compare viewports, start-screen preview, report thumbnails.
+src/viewer/crew.js           The start-screen crew: three tool-named crosshairs that draw the example, then hand off.
 src/viewer/palette.js        Material colours and how each look mixes them toward paper. All 3D colour lives here.
 src/state/store.js           Reducer, startState() (calm start screen) and exampleState() (the campus workshop).
 src/state/helpers.js         Option helpers, recommendation text, trace steps. Shared by agent, UI and report.
@@ -249,7 +252,13 @@ API: `new StructureViewer(host, { onBuilt, onInteract, onLayout })`, `sync(optio
 - Looks: `palette.js` mixes each material toward the paper colour and sets edge weight. Drafting is light faces with
   heavy ink; Studio is full colour with faint edges. Steel keeps more colour on paper so red oxide does not turn pink.
 - The **preview** entry (`PREVIEW_ID`) is linework only: the example turning slowly on the start screen, or a ghost of
-  the brief while the checkpoint waits. Edits to the brief swap it without replaying the animation.
+  the brief while the checkpoint waits. Edits to the brief swap it without replaying the animation. It is framed to the
+  circle it sweeps while turning (not a sphere), so it reads large in the short Studio strip without clipping.
+- **The crew** (`crew.js`, `setPreview(result, { crew: { layer, handoff } })`): on the start screen, crosshairs named
+  `place_footprint`, `study_bays` and `size_members` trace the outline, set out the gridlines and place the members, each
+  riding a projected 3D point with a live readout (mm, bays, sections). At about 7.5 s their tags fade and the crosshairs
+  fold into the message box caret. A key press or click speeds it up 3x; reduced motion skips it. It replays whenever the
+  example preview draws in (page load, New study). The gridlines sweep left to right for it instead of centre out.
 - **Insets:** any element with `data-inset="left|right|top|bottom"` that overlaps the canvas shifts the projection
   (`setViewOffset`) so the model is framed in the clear area. A side panel wider than 60% of the sheet counts as bottom.
 - Gridline bubbles and dimension strings are CSS2D labels on the near sides, in mm with thin spaces ("6 000").
@@ -286,7 +295,10 @@ API: `new StructureViewer(host, { onBuilt, onInteract, onLayout })`, `sync(optio
   layout changes. Nothing snaps: selections glide (`useGlide` moves one thumb, pill or underline), panels animate out
   as well as in, and the theme spreads from its button. Every animation respects `prefers-reduced-motion`.
 - **Panels:** on desktop the chat edge is a splitter (drag, arrow keys, double-click resets; saved as `ss-convo`), and
-  Adjust can be dragged by its header. On phones Adjust is a bottom sheet you can swipe down to close.
+  Adjust can be dragged by its header (it only reserves room for itself when parked near a side). On phones Adjust is a
+  bottom sheet you can swipe down to close.
+- **Container queries:** the title block (`tb`), compare views (`cmp`) and the toolbar row (`bar`) size their contents
+  to their own box, because the chat width can change. Do not go back to viewport breakpoints for these.
 - **Copy:** sentence case, plain verbs, Canadian spelling, SI units. **No em dashes. No all-caps labels. No "→" in buttons.**
   A button names the action it performs, and its result uses the same word ("Generate", then "Generated").
 - Keep **"Demo mode"** (under the composer) and **"Synthetic data"** (title block) until a real agent and WSP data are connected.
@@ -329,6 +341,8 @@ API: `new StructureViewer(host, { onBuilt, onInteract, onLayout })`, `sync(optio
     `useLingering` in `hooks.js` so they can animate out. A leaving element drops its `data-inset`.
 15. **Theme reveal:** the theme switch is a view transition of the root only; `.vt-theme` removes the named groups
     (topbar, convo, stage) for that one transition, and `setTheme` draws the canvas immediately so it is captured.
+16. **Compare framing:** each compare view keeps a band for its name and figures (`setComparePad`, measured in
+    `Stage.jsx`), so models sit between them instead of under them.
 
 ---
 

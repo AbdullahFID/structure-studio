@@ -126,6 +126,7 @@ export function TitleBlock({ o, state, leaving }) {
   const mat = MATERIALS[o.material];
   return (
     <div className={`titleblock ${pending ? 'is-pending' : ''} ${leaving ? 'is-leaving' : ''}`} aria-label={`Estimates for option ${o.letter}`} data-inset={leaving ? undefined : 'bottom'}>
+      <div className="tb-grid">
       <div className="tb-id">
         <MaterialSwatch material={o.material} size={28} className="tb-swatch" />
         <div>
@@ -143,6 +144,7 @@ export function TitleBlock({ o, state, leaving }) {
           Synthetic data
         </span>
       </Tip>
+      </div>
     </div>
   );
 }
