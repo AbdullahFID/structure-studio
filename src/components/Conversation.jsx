@@ -3,10 +3,61 @@ import { ArrowUp, Paperclip } from 'lucide-react';
 import { MATERIAL_KEYS, fmt } from '../engine/engine.js';
 import { REDUCED, matShort } from '../state/helpers.js';
 import { Message } from './messages.jsx';
+import { useMedia } from './hooks.js';
 import { Tip } from './ui.jsx';
 
-export function Conversation({ state, agent, ui, composer, setComposer }) {
+const MIN_W = 300;
+const maxW = () => Math.max(MIN_W, Math.min(680, window.innerWidth * 0.5));
+
+// Drag the panel's edge to give the chat or the model more room. While dragging,
+// the width is written straight to the page so React does not re-render each move.
+function Splitter({ width, onWidth }) {
+  const drag = useRef(null);
+  const app = () => document.querySelector('.app');
+  const current = () => drag.current?.w ?? width ?? document.querySelector('.convo')?.getBoundingClientRect().width ?? 392;
+  const commit = (w) => onWidth(Math.round(Math.min(maxW(), Math.max(MIN_W, w))));
+  return (
+    <div
+      className="splitter"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Resize the conversation panel"
+      aria-valuemin={MIN_W}
+      aria-valuenow={width || undefined}
+      tabIndex={0}
+      title="Drag to resize. Double-click to reset."
+      onPointerDown={(e) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        drag.current = { x: e.clientX, start: current(), w: current() };
+        document.documentElement.classList.add('is-resizing');
+      }}
+      onPointerMove={(e) => {
+        const d = drag.current;
+        if (!d) return;
+        d.w = Math.min(maxW(), Math.max(MIN_W, d.start + e.clientX - d.x));
+        app()?.style.setProperty('--convo-w', `${d.w}px`);
+      }}
+      onPointerUp={() => {
+        const d = drag.current;
+        drag.current = null;
+        document.documentElement.classList.remove('is-resizing');
+        if (d) commit(d.w);
+      }}
+      onPointerCancel={() => { drag.current = null; document.documentElement.classList.remove('is-resizing'); }}
+      onDoubleClick={() => { app()?.style.removeProperty('--convo-w'); onWidth(null); }}
+      onKeyDown={(e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); commit(current() + (e.key === 'ArrowRight' ? 24 : -24)); }
+        else if (e.key === 'Home' || e.key === 'Enter') { e.preventDefault(); app()?.style.removeProperty('--convo-w'); onWidth(null); }
+      }}
+    />
+  );
+}
+
+export function Conversation({ state, agent, ui, composer, setComposer, width, onWidth }) {
   const listRef = useRef(null);
+  const narrow = useMedia('(max-width: 860px)');
   const last = state.messages[state.messages.length - 1];
   const progress = last?.steps?.filter((s) => s.status === 'done').length;
   useEffect(() => {
@@ -24,15 +75,16 @@ export function Conversation({ state, agent, ui, composer, setComposer }) {
   ].filter(Boolean);
 
   return (
-    <section className="convo" aria-label="Conversation with the agent" data-inset="left">
+    // On phones the chat and the sheet take turns instead of overlapping, so the chat is never an inset there.
+    <section className="convo" aria-label="Conversation with the agent" data-inset={narrow ? undefined : 'left'}>
       <ol className="convo-list" ref={listRef} aria-live="polite" aria-relevant="additions">
         {state.messages.map((m) => <Message key={m.id} m={m} state={state} agent={agent} ui={ui} />)}
       </ol>
       <div className="convo-foot">
         {suggestions.length > 0 && (
           <div className="suggest" aria-label="Suggestions">
-            {suggestions.map((s) => (
-              <button key={s} type="button" className="chip chip--sm" onClick={() => { setComposer(s); ui.focusComposer(); }}>{s}</button>
+            {suggestions.map((s, i) => (
+              <button key={s} type="button" className="chip chip--sm" style={{ '--i': i }} onClick={() => { setComposer(s); ui.focusComposer(); }}>{s}</button>
             ))}
           </div>
         )}
@@ -46,6 +98,7 @@ export function Conversation({ state, agent, ui, composer, setComposer }) {
           onFile={ui.attach}
         />
       </div>
+      {onWidth && <Splitter width={width} onWidth={onWidth} />}
     </section>
   );
 }

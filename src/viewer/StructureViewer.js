@@ -2,8 +2,9 @@
 // StructureViewer: one three.js scene per option. Members are instanced meshes
 // with instanced ink edges that share the member matrices, so outlines grow
 // with the frame. Gridlines are drawn as chain lines (the drafting convention)
-// that draw themselves in. Supports compare (scissor viewports), a quiet
-// preview for the start screen, and thumbnails for the report.
+// that draw themselves in. Supports compare (scissor viewports laid out in the
+// clear part of the canvas), a quiet preview for the start screen, cross-fades
+// between scenes, and thumbnails for the report.
 // ============================================================================
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -16,8 +17,11 @@ import { faceColor, edgeStyle, lookParams, BASE, PANEL_ROLES } from './palette.j
 const STRUCT_ROLES = ['footing', 'column', 'beam', 'girder', 'infill', 'brace', 'slab', 'roofslab', 'rafter', 'purlin', 'roofdeck'];
 const ENV_ROLES = ['wall', 'glass', 'door'];
 const SEE_THROUGH = new Set(['roofslab', 'roofdeck']);
+const ENV_FADE = new Set(['wall', 'glass', 'door', ...SEE_THROUGH]); // faces that change with the walls toggle
 const PREVIEW_ID = '__preview';
 const WHITE = new THREE.Color('#ffffff');
+const NO_INSETS = { top: 0, right: 0, bottom: 0, left: 0 };
+const SWAP_MS = 380;
 const easeOut = (x) => 1 - Math.pow(1 - x, 3);
 
 // ---- unit geometries: length along X, depth along Y, width along Z
@@ -201,23 +205,29 @@ const VIEW_DIRS = {
 };
 
 export class StructureViewer {
-  constructor(host, { onBuilt, onInteract, onHoverChange } = {}) {
+  constructor(host, { onBuilt, onInteract, onHoverChange, onLayout } = {}) {
     this.host = host;
     this.onBuilt = onBuilt || (() => {});
     this.onInteract = onInteract || (() => {});
     this.onHoverChange = onHoverChange || (() => {});
+    this.onLayout = onLayout || (() => {});
     this.entries = new Map();
     this.activeId = null;
     this.compareIds = [];
     this.display = { envelope: false, labels: true };
+    this.envMix = 0; // walls and roof, tweened between 0 (frame only) and 1
     this.theme = { look: 'drafting', dark: false, gridline: '#1f4a8a', ink: '#1d2327', ink3: '#6b7277', gridMinor: '#d5dad9', gridMajor: '#b5bdbd' };
     this.dirty = true;
     this.anims = 0;
-    this.insets = { top: 0, right: 0, bottom: 0, left: 0 };
+    this.paused = false;
+    this.layoutKey = '';
+    this.insets = { ...NO_INSETS };
     this.reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    // Phones and tablets: fewer pixels and a smaller shadow map keep orbiting smooth.
+    this.coarse = !!window.matchMedia?.('(pointer: coarse)').matches;
 
     const r = (this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' }));
-    r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    r.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.coarse ? 1.5 : 2));
     r.setClearColor(0x000000, 0);
     r.shadowMap.enabled = true;
     r.shadowMap.type = THREE.PCFShadowMap;
@@ -225,8 +235,16 @@ export class StructureViewer {
     r.domElement.className = 'vw-canvas';
     host.appendChild(r.domElement);
 
+    // The last frame of the previous scene, faded out over the new one.
+    this.fade = document.createElement('canvas');
+    this.fade.className = 'vw-fade';
+    this.fade.setAttribute('aria-hidden', 'true');
+    host.appendChild(this.fade);
+
     this.labels = new CSS2DRenderer();
     this.labels.domElement.className = 'vw-labels';
+    // Depth sorting rewrites every label's z-index each frame; the labels sit on the ground plane, so order does not matter.
+    this.labels.sortObjects = false;
     host.appendChild(this.labels.domElement);
 
     this.tip = document.createElement('div');
@@ -303,12 +321,21 @@ export class StructureViewer {
     const p = lookParams(look, dark);
     faceColor(material, role, look, dark, m.color);
     m.envMapIntensity = p.env;
-    const see = SEE_THROUGH.has(role) && !this.display.envelope;
-    const glass = role === 'glass';
-    m.transparent = see || glass;
-    m.opacity = glass ? 0.45 : see ? (look === 'studio' ? 0.3 : 0.22) : 1;
-    m.depthWrite = !see;
-    m.needsUpdate = true;
+    const k = this.envMix;
+    let op = 1;
+    if (role === 'glass') op = 0.45 * k;
+    else if (role === 'wall' || role === 'door') op = k;
+    else if (SEE_THROUGH.has(role)) {
+      const see = look === 'studio' ? 0.3 : 0.22;
+      op = see + (1 - see) * k;
+    }
+    const transparent = role === 'glass' || op < 0.999;
+    if (m.transparent !== transparent) {
+      m.transparent = transparent;
+      m.needsUpdate = true;
+    }
+    m.opacity = op;
+    m.depthWrite = !transparent;
   }
 
   edgeMat(role, preview = false) {
@@ -332,7 +359,7 @@ export class StructureViewer {
     }
     const s = edgeStyle(role, look, dark);
     m.uniforms.uColor.value.set(s.color);
-    m.uniforms.uOpacity.value = s.opacity;
+    m.uniforms.uOpacity.value = s.opacity * (cat === 'env' ? this.envMix : 1);
   }
 
   // ---------------------------------------------------------------- theme --
@@ -345,6 +372,12 @@ export class StructureViewer {
     for (const m of this.edgeMats.values()) this.styleEdge(m);
     for (const e of this.entries.values()) this.themeEntry(e);
     this.dirty = true;
+    // Draw now, so a view transition that captures the page sees the new colours.
+    if (!this.paused) this.render();
+  }
+
+  gridOpacity(e) {
+    return e.preview ? 0.28 : this.theme.dark ? 0.8 : 0.72;
   }
 
   themeEntry(e) {
@@ -358,7 +391,7 @@ export class StructureViewer {
     e.ground.visible = !studio && !e.preview;
     e.shadow.material.opacity = e.preview ? 0 : p.shadow;
     e.gridMat.uniforms.uColor.value.set(t.gridline);
-    e.gridMat.uniforms.uOpacity.value = e.preview ? 0.28 : t.dark ? 0.8 : 0.72;
+    if (!e.gridTween) e.gridMat.uniforms.uOpacity.value = this.gridOpacity(e);
     e.footMat.uniforms.uColor.value.set(t.gridline);
     e.fpFill.material.color.set(t.gridline);
     e.dimMat.color.set(t.ink3);
@@ -371,6 +404,12 @@ export class StructureViewer {
 
   // ----------------------------------------------------------------- sync --
   sync(options, { activeId, compareIds, display }) {
+    const nextCompare = compareIds || [];
+    const prevKey = `${this.activeId}|${this.compareIds.join(',')}`;
+    const nextKey = `${activeId}|${nextCompare.join(',')}`;
+    // Switching what is shown cross-fades from the last frame instead of cutting.
+    if (prevKey !== nextKey && this.activeId && this.framed) this.snapshot();
+
     const ids = new Set(options.map((o) => o.id));
     for (const [id, e] of this.entries) if (!e.preview && !ids.has(id)) this.disposeEntry(id, e);
     for (const o of options) {
@@ -383,21 +422,111 @@ export class StructureViewer {
       }
       if (e.stage !== o.stage) this.setStage(o.id, e, o.stage, o.animate);
     }
-    const displayChanged = display && (display.envelope !== this.display.envelope || display.labels !== this.display.labels);
-    if (display) this.display = { ...display };
-    if (displayChanged) {
-      for (const m of this.faceMats.values()) this.styleFace(m);
-      for (const e of this.entries.values()) this.applyDisplay(e);
+    if (display) {
+      const prev = this.display;
+      this.display = { ...display };
+      const animate = !this.reduced && !!this.framed;
+      if (display.envelope !== prev.envelope) this.setEnvelope(display.envelope, animate);
+      if (display.labels !== prev.labels) this.setGridlines(display.labels, animate);
     }
-    const prevKey = `${this.activeId}|${this.compareIds.join(',')}`;
     if (this.activeId !== activeId) this.detachLabels(this.activeId);
     this.activeId = activeId;
-    this.compareIds = compareIds || [];
+    this.compareIds = nextCompare;
     this.labels.domElement.hidden = this.compareIds.length > 1;
     const preview = this.entries.get(PREVIEW_ID);
     this.controls.autoRotate = !!preview && !this.activeId && !this.reduced;
-    const nextKey = `${this.activeId}|${this.compareIds.join(',')}`;
     if (prevKey !== nextKey || !this.framed) this.frame(false);
+    this.dirty = true;
+    this.emitLayout();
+  }
+
+  // Copies the current frame onto the fade canvas and fades it out over whatever renders next.
+  snapshot() {
+    if (this.reduced || this.paused || !this.width) return;
+    const gl = this.renderer.domElement, c = this.fade;
+    if (c.width !== gl.width || c.height !== gl.height) { c.width = gl.width; c.height = gl.height; }
+    // The drawing buffer is only readable in the task that drew it, so draw first.
+    this.render();
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.drawImage(gl, 0, 0);
+    this.fadeAnim?.cancel();
+    this.fadeAnim = c.animate([{ opacity: 1 }, { opacity: 0 }], { duration: SWAP_MS, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' });
+    this.labels.domElement.animate([{ opacity: 0 }, { opacity: 1 }], { duration: SWAP_MS, delay: 120, easing: 'ease-out', fill: 'backwards' });
+  }
+
+  // Walls and roof fade in and out rather than popping.
+  setEnvelope(on, animate) {
+    this.envTween?.kill();
+    this.envTween = null;
+    const apply = () => {
+      for (const m of this.faceMats.values()) if (ENV_FADE.has(m.userData.role)) this.styleFace(m);
+      for (const m of this.edgeMats.values()) if (m.userData.cat === 'env') this.styleEdge(m);
+      for (const e of this.entries.values()) this.applyDisplay(e);
+      this.dirty = true;
+    };
+    if (!animate) { this.envMix = on ? 1 : 0; apply(); return; }
+    const st = { v: this.envMix };
+    this.envTween = gsap.to(st, {
+      v: on ? 1 : 0, duration: 0.45, ease: 'power2.inOut',
+      onUpdate: () => { this.envMix = st.v; apply(); },
+      onComplete: () => { this.envTween = null; apply(); },
+    });
+  }
+
+  // Gridlines draw themselves back on, and fade out when hidden.
+  setGridlines(on, animate) {
+    const dirty = () => (this.dirty = true);
+    for (const e of this.entries.values()) {
+      if (e.preview) continue;
+      e.gridTween?.kill();
+      e.gridTween = null;
+      const u = e.gridMat.uniforms;
+      u.uOpacity.value = this.gridOpacity(e);
+      if (!animate || e.stage !== 'ready') { this.applyDisplay(e); continue; }
+      if (on) {
+        u.uProgress.value = 0;
+        e.dimMat.opacity = 0;
+        if (e.id === this.activeId) this.labels.domElement.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, delay: 250, easing: 'ease-out', fill: 'backwards' });
+        e.gridTween = gsap.timeline({ onComplete: () => { e.gridTween = null; } })
+          .to(u.uProgress, { value: 1, duration: 0.9, ease: 'power2.out', onUpdate: dirty })
+          .to(e.dimMat, { opacity: 0.9, duration: 0.4, onUpdate: dirty }, 0.35);
+      } else {
+        this.showLabels(e, false);
+        e.gridTween = gsap.timeline({
+          onComplete: () => {
+            e.gridTween = null;
+            this.applyDisplay(e);
+            u.uOpacity.value = this.gridOpacity(e);
+            e.dimMat.opacity = 0.9;
+            this.showLabels(e, true);
+            this.dirty = true;
+          },
+        })
+          .to(u.uOpacity, { value: 0, duration: 0.28, ease: 'power1.out', onUpdate: dirty })
+          .to(e.dimMat, { opacity: 0, duration: 0.28, onUpdate: dirty }, 0);
+      }
+      this.applyDisplay(e);
+    }
+  }
+
+  // Stops drawing while the canvas is hidden (the chat tab on phones).
+  setActive(on) {
+    if (this.paused === !on) return;
+    this.paused = !on;
+    if (on) { this.dirty = true; this.render(); }
+  }
+
+  emitLayout() {
+    const rects = this.compareIds.length > 1 && this.width ? this.viewRects() : [];
+    const key = rects.map((r) => `${r.id}:${r.x},${r.y},${r.w},${r.h}`).join('|');
+    if (key === this.layoutKey) return;
+    this.layoutKey = key;
+    this.onLayout(rects);
+  }
+
+  markShadow(e) {
+    e.sun.shadow.needsUpdate = true;
     this.dirty = true;
   }
 
@@ -449,7 +578,11 @@ export class StructureViewer {
     const half = Math.max(L, W) * 0.75 + top * 0.6 + 4;
     sc.left = -half; sc.right = half; sc.top = half; sc.bottom = -half;
     sc.near = 0.5; sc.far = ext * 4 + 60;
-    sun.shadow.mapSize.set(2048, 2048);
+    const map = this.coarse ? 1024 : 2048;
+    sun.shadow.mapSize.set(map, map);
+    // The light and the frame never move while you orbit, so the shadow map is only redrawn when the frame changes.
+    sun.shadow.autoUpdate = false;
+    sun.shadow.needsUpdate = true;
     sun.shadow.bias = -0.0004;
     sun.shadow.normalBias = 0.03;
     sun.shadow.radius = 5;
@@ -605,34 +738,44 @@ export class StructureViewer {
   }
 
   applyDisplay(e) {
-    const env = this.display.envelope && !e.preview;
+    const k = e.preview ? 0 : this.envMix;
+    const envOn = this.display.envelope && !e.preview;
+    let changed = false;
+    const set = (o, key, v) => { if (o[key] !== v) { o[key] = v; changed = true; } };
     for (const p of e.parts) {
       if (p.env) {
-        const on = env && e.stage !== 'footprint' && e.stage !== 'grid';
-        p.mesh.visible = on;
-        p.edges.visible = on;
+        const on = k > 0.001 && e.stage !== 'footprint' && e.stage !== 'grid';
+        set(p.mesh, 'visible', on);
+        set(p.edges, 'visible', on);
+        // Shadows from the walls arrive once they are fully in, so the shadow map is not redrawn every frame of the fade.
+        set(p.mesh, 'castShadow', on && k >= 0.999 && p.role !== 'glass');
       }
-      if (SEE_THROUGH.has(p.role)) p.mesh.castShadow = env;
+      if (SEE_THROUGH.has(p.role)) set(p.mesh, 'castShadow', envOn);
     }
-    e.gableEnds.visible = env && (e.stage === 'ready' || e.stage === 'build');
-    e.gridGroup.visible = e.preview || (this.display.labels && e.stage !== 'footprint');
+    set(e.gableEnds, 'visible', k > 0.001 && (e.stage === 'ready' || e.stage === 'build'));
+    e.gridGroup.visible = e.preview || ((this.display.labels || !!e.gridTween) && e.stage !== 'footprint');
+    if (changed && !e.preview) this.markShadow(e);
   }
 
+  // Only members inside their growth window are recomputed; settled ones keep their matrix.
   setProgress(e, u) {
     e.u = u;
     const dur = THREE.MathUtils.clamp(0.22 / Math.sqrt(e.bounds.n), 0.07, 0.22);
+    let moved = false;
     for (const p of e.parts) {
-      if (p.env) {
-        for (let i = 0; i < p.items.length; i++) p.mesh.setMatrixAt(i, itemMatrix(p.items[i], 1, _m));
-      } else {
-        for (let i = 0; i < p.items.length; i++) {
-          const it = p.items[i];
-          const t = THREE.MathUtils.clamp((u * (1 + dur) - it.delay) / dur, 0, 1);
-          p.mesh.setMatrixAt(i, itemMatrix(it, easeOut(t), _m));
-        }
+      const last = p.t || (p.t = new Float32Array(p.items.length).fill(-1));
+      let changed = false;
+      for (let i = 0; i < p.items.length; i++) {
+        const it = p.items[i];
+        const t = p.env ? 1 : THREE.MathUtils.clamp((u * (1 + dur) - it.delay) / dur, 0, 1);
+        if (t === last[i]) continue;
+        last[i] = t;
+        p.mesh.setMatrixAt(i, itemMatrix(it, p.env ? 1 : easeOut(t), _m));
+        changed = true;
       }
-      p.mesh.instanceMatrix.needsUpdate = true;
+      if (changed) { p.mesh.instanceMatrix.needsUpdate = true; moved = true; }
     }
+    if (moved && !e.preview) this.markShadow(e);
     this.dirty = true;
   }
 
@@ -643,6 +786,7 @@ export class StructureViewer {
   setStage(id, e, stage, animate = true) {
     e.stage = stage;
     if (e.tween) { e.tween.kill(); e.tween = null; this.anims = Math.max(0, this.anims - 1); }
+    if (e.gridTween) { e.gridTween.kill(); e.gridTween = null; e.gridMat.uniforms.uOpacity.value = this.gridOpacity(e); }
     const fast = this.reduced || !animate;
     const run = (tl, done) => {
       this.anims++;
@@ -698,6 +842,7 @@ export class StructureViewer {
 
   disposeEntry(id, e) {
     if (e.tween) { e.tween.kill(); this.anims = Math.max(0, this.anims - 1); }
+    e.gridTween?.kill();
     const shared = new Set([...this.faceMats.values(), ...this.edgeMats.values()]);
     e.scene.traverse((o) => {
       if (o.isCSS2DObject && o.element.parentNode) o.element.remove();
@@ -717,8 +862,9 @@ export class StructureViewer {
     const k = (o) => `${o.top}|${o.right}|${o.bottom}|${o.left}`;
     if (k(ins) === k(this.insets) && !resized) return;
     this.insets = { ...ins };
-    if (this.framed && this.compareIds.length < 2) this.frame(true);
+    if (this.framed) this.frame(true);
     this.dirty = true;
+    this.emitLayout();
   }
 
   applyOffset(v, single) {
@@ -740,7 +886,7 @@ export class StructureViewer {
 
   viewRects() {
     const ids = this.shownIds();
-    return compareRects(this.width, this.height, ids.length).map((r, i) => ({ ...r, id: ids[i] }));
+    return compareRects(this.width, this.height, ids.length, this.insets).map((r, i) => ({ ...r, id: ids[i] }));
   }
 
   frame(animate = true, view = this.view || 'iso') {
@@ -860,11 +1006,13 @@ export class StructureViewer {
     // A camera move aimed at the old size would land off-centre, so re-aim it.
     if (reframe && this.framed) this.frame(!!this.camTween);
     this.dirty = true;
+    if (reframe) this.emitLayout();
     return true;
   }
 
   loop() {
     this.raf = requestAnimationFrame(this.loop);
+    if (this.paused) return;
     const moved = this.controls.update();
     if (this.dirty || moved || this.anims > 0) {
       this.render();
@@ -877,7 +1025,10 @@ export class StructureViewer {
     if (!this.width) return;
     const rects = this.viewRects();
     const single = rects.length === 1;
+    // Compare views do not cover the whole canvas, so clear it first or the last single view lingers in the gaps.
+    if (!single) { r.setScissorTest(false); r.clear(); }
     r.setScissorTest(!single);
+    let labelled = null;
     for (const v of rects) {
       const e = this.entries.get(v.id);
       r.setViewport(v.x, this.height - v.y - v.h, v.w, v.h);
@@ -887,9 +1038,11 @@ export class StructureViewer {
       this.applyOffset(v, single);
       this.camera.updateProjectionMatrix();
       r.render(e.scene, this.camera);
-      if (single && this.display.labels && !e.preview) this.labels.render(e.scene, this.camera);
+      if (single && !e.preview) labelled = e;
     }
     r.setScissorTest(false);
+    // Always render the labels of the shown option: CSS2D only hides labels of a hidden group when it renders.
+    if (labelled) this.labels.render(labelled.scene, this.camera);
   }
 
   // Renders one option to a PNG at the given size without touching the live view.
@@ -917,13 +1070,15 @@ export class StructureViewer {
     r.setPixelRatio(dpr);
     r.setSize(this.width, this.height, false);
     if (u < 1) this.setProgress(e, u);
-    this.render();
+    if (!this.paused) this.render();
     return url;
   }
 
   dispose() {
     cancelAnimationFrame(this.raf);
     this.ro.disconnect();
+    this.fadeAnim?.cancel();
+    this.envTween?.kill();
     const el = this.renderer.domElement;
     el.removeEventListener('pointermove', this._onMove);
     el.removeEventListener('pointerleave', this._onLeave);
@@ -940,21 +1095,30 @@ export class StructureViewer {
   }
 }
 
-// Shared by the viewer and the React overlays so labels line up with viewports.
-export function compareRects(w, h, n) {
-  const gap = 2;
+// Compare viewports, laid out in the part of the canvas no panel covers, so the
+// floating chat or the toolbar never hides one of them. The viewer reports the
+// result through onLayout so the React overlays line up with it.
+export function compareRects(w, h, n, ins = NO_INSETS) {
   if (n <= 1) return [{ x: 0, y: 0, w, h }];
-  const portrait = w < 700 && h > w * 0.9;
-  if (portrait) {
-    const rh = (h - gap * (n - 1)) / n;
-    return Array.from({ length: n }, (_, i) => ({ x: 0, y: Math.round(i * (rh + gap)), w, h: Math.round(rh) }));
+  const gap = 2;
+  const x0 = Math.round(ins.left), y0 = Math.round(ins.top);
+  const W = Math.max(160, w - ins.left - ins.right), H = Math.max(160, h - ins.top - ins.bottom);
+  // One row reads best as a lineup. A grid only wins when it gives each view clearly more room.
+  let best = null;
+  for (let cols = W < 560 ? 1 : n; cols >= 1; cols--) {
+    const rows = Math.ceil(n / cols);
+    const cw = (W - gap * (cols - 1)) / cols, ch = (H - gap * (rows - 1)) / rows;
+    const room = Math.min(cw, ch);
+    if (!best || room > best.room * 1.25) best = { cols, rows, cw, ch, room };
   }
-  if (n === 4 || (n > 3 && w / h < 2.2)) {
-    const cols = Math.ceil(n / 2), rw = (w - gap * (cols - 1)) / cols, rh = (h - gap) / 2;
-    return Array.from({ length: n }, (_, i) => ({ x: Math.round((i % cols) * (rw + gap)), y: Math.round(Math.floor(i / cols) * (rh + gap)), w: Math.round(rw), h: Math.round(rh) }));
-  }
-  const rw = (w - gap * (n - 1)) / n;
-  return Array.from({ length: n }, (_, i) => ({ x: Math.round(i * (rw + gap)), y: 0, w: Math.round(rw), h }));
+  const { cols, cw, ch } = best;
+  return Array.from({ length: n }, (_, i) => {
+    const row = Math.floor(i / cols), col = i % cols;
+    const inRow = Math.min(cols, n - row * cols);
+    // A short last row is centred so every view keeps the same size.
+    const lead = ((cols - inRow) * (cw + gap)) / 2;
+    return { x: Math.round(x0 + lead + col * (cw + gap)), y: Math.round(y0 + row * (ch + gap)), w: Math.round(cw), h: Math.round(ch) };
+  });
 }
 
 export { PREVIEW_ID };

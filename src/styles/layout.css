@@ -1,5 +1,8 @@
 /* ------------------------------------------------------------------ shell */
 .app {
+  /* Conversation width: a default per look, or the width set by dragging the splitter (inline on .app). */
+  --convo-w: 392px;
+  --convo-col: clamp(300px, var(--convo-w), 50vw);
   height: 100dvh;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -58,7 +61,7 @@
 
 .work {
   display: grid;
-  grid-template-columns: minmax(340px, 392px) minmax(0, 1fr);
+  grid-template-columns: var(--convo-col) minmax(0, 1fr);
   min-height: 0;
   padding: 0 12px 12px 0;
 }
@@ -67,6 +70,7 @@
 /* ----------------------------------------------------------- conversation */
 .convo {
   view-transition-name: convo;
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -85,6 +89,22 @@
 }
 .convo-foot { padding: 4px 16px 4px 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 
+/* Drag handle on the conversation's right edge */
+.splitter {
+  position: absolute; z-index: 12; top: 0; bottom: 0; right: -7px; width: 14px;
+  cursor: col-resize; touch-action: none; display: grid; place-items: center;
+}
+.splitter::after {
+  content: ''; width: 4px; height: 44px; border-radius: 2px;
+  background: var(--ink-3); opacity: 0; transform: scaleY(0.6);
+  transition: opacity 200ms var(--ease), transform 300ms var(--ease-out), background 200ms;
+}
+.splitter:hover::after, .splitter:focus-visible::after, .is-resizing .splitter::after { opacity: 0.55; transform: none; }
+.is-resizing .splitter::after { opacity: 0.9; background: var(--accent); }
+.splitter:focus-visible { outline: none; }
+.splitter:focus-visible::after { background: var(--accent); }
+.is-resizing, .is-resizing * { cursor: col-resize !important; user-select: none; }
+
 /* ------------------------------------------------------------------ stage */
 .stage {
   view-transition-name: stage;
@@ -100,7 +120,7 @@
 .stage-canvas { position: absolute; inset: 0; }
 
 /* -------------------------------------------------------- studio layout */
-[data-look='studio'] .app { display: block; }
+[data-look='studio'] .app { display: block; --convo-w: 384px; }
 [data-look='studio'] .topbar {
   position: absolute; top: 12px; left: 12px; right: 12px;
   min-height: 52px; padding: 0 8px 0 16px;
@@ -115,7 +135,7 @@
 [data-look='studio'] .stage { position: absolute; inset: 0; border: 0; border-radius: 0; box-shadow: none; }
 [data-look='studio'] .convo {
   position: absolute; z-index: 20;
-  left: 12px; top: 76px; bottom: 12px; width: 384px;
+  left: 12px; top: 76px; bottom: 12px; width: var(--convo-col);
   border-radius: var(--r-xl);
   background: var(--glass-card);
   -webkit-backdrop-filter: blur(16px) saturate(140%);
@@ -184,6 +204,7 @@
 
 /* ------------------------------------------------------------ mobile dock */
 .dock { display: none; }
+.dock-pill { display: none; }
 
 /* ------------------------------------------------------- view transitions */
 ::view-transition-group(*) { animation-duration: 420ms; animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
@@ -192,12 +213,21 @@
 @keyframes vt-in { from { opacity: 0; transform: translateX(-16px); } }
 @keyframes vt-out { to { opacity: 0; } }
 
+/* Theme switch: one snapshot of the whole page, revealed as a circle from the button (see App.jsx). */
+:root.vt-theme::view-transition-old(root),
+:root.vt-theme::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+:root.vt-theme .topbar, :root.vt-theme .convo, :root.vt-theme .stage, :root.vt-theme .start-box { view-transition-name: none; }
+/* Browsers without view transitions ease the colours across instead. */
+:root.theme-fade, :root.theme-fade *:not(.theme-ico) {
+  transition: background-color 360ms var(--ease), color 360ms var(--ease), border-color 360ms var(--ease), fill 360ms, stroke 360ms !important;
+}
+
 /* ---------------------------------------------------------------- narrow */
 @media (max-width: 1180px) {
   .look-label { display: none; }
 }
 @media (max-width: 1020px) {
-  .work { grid-template-columns: minmax(300px, 340px) minmax(0, 1fr); }
+  .app { --convo-w: 340px; }
   .look-switch { display: none; }
   .start-examples ul { grid-template-columns: minmax(0, 1fr); }
 }
@@ -212,8 +242,19 @@
   .work { grid-template-columns: minmax(0, 1fr); padding: 0 8px calc(76px + env(safe-area-inset-bottom)) 8px; }
   .app[data-view='start'] .work { padding: 0 8px 8px; }
   .convo, .stage { grid-row: 1; grid-column: 1; }
-  .app[data-view='work'][data-panel='chat'] .stage { visibility: hidden; pointer-events: none; }
-  .app[data-view='work'][data-panel='model'] .convo { display: none; }
+  .splitter { display: none; }
+  /* Chat and Model slide and fade into each other instead of swapping in one frame. */
+  .app[data-view='work'] .convo, .app[data-view='work'] .stage {
+    transition: opacity 260ms var(--ease), transform 420ms var(--ease-out), visibility 0s linear 0s;
+  }
+  .app[data-view='work'][data-panel='chat'] .stage {
+    opacity: 0; transform: translateX(18px) scale(0.985); visibility: hidden; pointer-events: none;
+    transition: opacity 200ms var(--ease), transform 420ms var(--ease-out), visibility 0s linear 420ms;
+  }
+  .app[data-view='work'][data-panel='model'] .convo {
+    opacity: 0; transform: translateX(-18px); visibility: hidden; pointer-events: none;
+    transition: opacity 200ms var(--ease), transform 420ms var(--ease-out), visibility 0s linear 420ms;
+  }
   .convo-list { padding-inline: 8px; }
   .convo-foot { padding-inline: 4px; }
 
@@ -222,6 +263,7 @@
     left: 50%; bottom: calc(12px + env(safe-area-inset-bottom));
     transform: translateX(-50%);
     display: flex; gap: 2px; padding: 4px;
+    isolation: isolate;
     border-radius: var(--r-pill);
     background: var(--glass-nav);
     -webkit-backdrop-filter: blur(16px) saturate(140%);
@@ -229,13 +271,23 @@
     border: 1px solid var(--glass-line);
     box-shadow: inset 0 1px 0 var(--glass-edge), var(--shadow-md);
   }
+  /* The pill is one element that glides between tabs (useGlide), stretching to each tab's width. */
+  .dock-pill {
+    display: block; position: absolute; z-index: -1; left: 0; top: 0;
+    border-radius: var(--r-pill); background: var(--primary);
+    box-shadow: 0 4px 14px -6px rgb(0 0 0 / 0.35);
+    transition: transform 460ms cubic-bezier(0.32, 0.72, 0, 1), width 460ms cubic-bezier(0.32, 0.72, 0, 1), opacity 200ms;
+    will-change: transform;
+  }
   .dock button {
     display: inline-flex; align-items: center; gap: 6px;
     min-height: 44px; padding: 0 16px; border-radius: var(--r-pill);
     font-weight: 560; font-size: var(--fs-14); color: var(--ink-2);
-    transition: background var(--dur), color var(--dur);
+    -webkit-tap-highlight-color: transparent;
+    transition: color 320ms var(--ease), transform 160ms var(--ease);
   }
-  .dock button[aria-pressed='true'] { background: var(--primary); color: var(--primary-ink); }
+  .dock button[aria-pressed='true'] { color: var(--primary-ink); }
+  .dock button:active:not(:disabled) { transform: scale(0.94); }
   .dock button:disabled { opacity: 0.4; }
   .dock-count {
     font-size: 11px; min-width: 18px; height: 18px; border-radius: 9px;

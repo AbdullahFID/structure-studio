@@ -1,18 +1,39 @@
+import { useLayoutEffect, useRef } from 'react';
 import { DropdownMenu } from 'radix-ui';
 import { BrickWall, Box, Building2, Columns2, Info, Plus, Ruler, SlidersHorizontal, SquareDashed, X } from 'lucide-react';
 import { MATERIALS, MATERIAL_KEYS, PRIORITIES, bestOf, fmt } from '../engine/engine.js';
-import { MAX_OPTIONS, matShort, recommendation } from '../state/helpers.js';
-import { useCountUp } from './hooks.js';
+import { MAX_OPTIONS, REDUCED, matShort, recommendation } from '../state/helpers.js';
+import { useCountUp, useGlide } from './hooks.js';
 import { IconButton, MaterialSwatch, Tip } from './ui.jsx';
 
 export function OptionTabs({ state, ui, agent }) {
   const active = state.options.find((o) => o.id === state.activeId);
+  const list = useRef(null);
+  const ink = useRef(null);
+  const order = state.options.map((o) => `${o.id}:${o.stage === 'ready'}`).join(',');
+  // The underline slides to the active tab; it fades out while comparing.
+  useGlide(list, ink, '.tab.is-active', `${state.compare ? '' : state.activeId}|${order}`);
+  // Tabs that shift (after a delete or an undo) glide to their new place.
+  const spots = useRef(new Map());
+  useLayoutEffect(() => {
+    const el = list.current;
+    if (!el) return;
+    const next = new Map();
+    for (const t of el.querySelectorAll('.tab[data-id]')) {
+      const x = t.offsetLeft;
+      const was = spots.current.get(t.dataset.id);
+      if (was != null && was !== x && !REDUCED) t.animate([{ transform: `translateX(${was - x}px)` }, { transform: 'none' }], { duration: 320, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+      next.set(t.dataset.id, x);
+    }
+    spots.current = next;
+  }, [order]);
   return (
-    <div className="tabs" role="tablist" aria-label="Options">
+    <div className="tabs" role="tablist" aria-label="Options" ref={list}>
+      <span className="tabs-ink" ref={ink} aria-hidden="true" />
       {state.options.map((o) => {
         const on = !state.compare && o.id === state.activeId;
         return (
-          <div key={o.id} className={`tab ${on ? 'is-active' : ''} ${o.fresh ? 'is-fresh' : ''}`}>
+          <div key={o.id} data-id={o.id} className={`tab ${on ? 'is-active' : ''} ${o.fresh ? 'is-fresh' : ''}`}>
             <button type="button" role="tab" aria-selected={on} className="tab-btn" onClick={() => ui.select(o.id)}>
               <MaterialSwatch material={o.material} size={14} />
               <span className="tab-letter">{o.letter}</span>
@@ -54,9 +75,13 @@ export function OptionTabs({ state, ui, agent }) {
 
 export function ViewTools({ state, dispatch, ui, view, onView }) {
   const single = !state.compare;
+  const cam = useRef(null);
+  const thumb = useRef(null);
+  useGlide(cam, thumb, '[aria-pressed="true"]', view);
   return (
     <div className="tools" role="toolbar" aria-label="View">
-      <div className="tool-group" role="group" aria-label="Camera">
+      <div className="tool-group tool-group--seg" role="group" aria-label="Camera" ref={cam}>
+        <span className="tool-thumb" ref={thumb} aria-hidden="true" />
         <IconButton icon={Box} label="3D view" kbd="1" pressed={view === 'iso'} onClick={() => onView('iso')} />
         <IconButton icon={SquareDashed} label="Plan" kbd="2" pressed={view === 'top'} onClick={() => onView('top')} />
         <IconButton icon={Building2} label="Elevation" kbd="3" pressed={view === 'front'} onClick={() => onView('front')} />
@@ -93,14 +118,14 @@ function Cell({ label, value, fmtFn, unit, sub, best, title, count }) {
 }
 
 // The title block: identity and estimates for the active option, the way a drawing sheet carries them.
-export function TitleBlock({ o, state }) {
+export function TitleBlock({ o, state, leaving }) {
   const M = o.result.metrics;
   const ready = state.options.filter((x) => x.stage === 'ready');
   const best = ready.length > 1 ? bestOf(ready.map((x) => x.result)) : null;
   const pending = o.stage !== 'ready';
   const mat = MATERIALS[o.material];
   return (
-    <div className={`titleblock ${pending ? 'is-pending' : ''}`} aria-label={`Estimates for option ${o.letter}`} data-inset="bottom">
+    <div className={`titleblock ${pending ? 'is-pending' : ''} ${leaving ? 'is-leaving' : ''}`} aria-label={`Estimates for option ${o.letter}`} data-inset={leaving ? undefined : 'bottom'}>
       <div className="tb-id">
         <MaterialSwatch material={o.material} size={28} className="tb-swatch" />
         <div>
@@ -122,12 +147,12 @@ export function TitleBlock({ o, state }) {
   );
 }
 
-export function CompareOverlay({ state, rects, compareIds, ui }) {
+export function CompareOverlay({ state, rects, ui, leaving }) {
   const ready = state.options.filter((o) => o.stage === 'ready');
   const best = ready.length > 1 ? bestOf(ready.map((o) => o.result)) : null;
   const rank = recommendation(state.options, state.priority);
   return rects.map((r, i) => {
-    const o = state.options.find((x) => x.id === compareIds[i]);
+    const o = state.options.find((x) => x.id === r.id);
     if (!o) return null;
     const M = o.result.metrics;
     const first = rank && rank.order[0] === o.id;
@@ -135,7 +160,7 @@ export function CompareOverlay({ state, rects, compareIds, ui }) {
       <div className={best && M[k] === best[k] ? 'is-best' : ''}><span>{label}</span><strong>{v}</strong></div>
     );
     return (
-      <div key={o.id} className="cmp" style={{ left: r.x, top: r.y, width: r.w, height: r.h }}>
+      <div key={o.id} className={`cmp ${leaving ? 'is-leaving' : ''}`} style={{ left: r.x, top: r.y, width: r.w, height: r.h, '--i': i }}>
         <button type="button" className="cmp-head" onClick={() => ui.select(o.id)}>
           <MaterialSwatch material={o.material} size={14} />
           <span className="cmp-letter">{o.letter}</span>

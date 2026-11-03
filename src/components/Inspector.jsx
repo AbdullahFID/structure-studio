@@ -4,7 +4,56 @@ import { MATERIALS, MATERIAL_KEYS, PRIORITIES, fmt, normalizeSpec } from '../eng
 import { matShort, plural, withChange } from '../state/helpers.js';
 import { IconButton, MaterialSwatch, PlanGlyph, Segmented, SliderField, Stepper } from './ui.jsx';
 
-export function Inspector({ o, state, dispatch, agent, ui, onClose }) {
+// Drag the header to move the panel around the sheet on desktop; double-click puts it back.
+// On phones the panel is a bottom sheet, and dragging it down past a threshold closes it.
+function useDragPanel({ narrow, offset, onOffset, onClose }) {
+  const panel = useRef(null);
+  const drag = useRef(null);
+  const onPointerDown = (e) => {
+    if (e.button !== 0 || e.target.closest('button')) return;
+    const el = panel.current, box = el?.offsetParent?.getBoundingClientRect();
+    if (!el || !box) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const r = el.getBoundingClientRect();
+    // How far the panel may travel before it leaves the sheet.
+    drag.current = {
+      x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y, nx: offset.x, ny: offset.y,
+      minX: offset.x - (r.left - box.left) + 8, maxX: offset.x + (box.right - r.right) - 8,
+      minY: offset.y - (r.top - box.top) + 8, maxY: offset.y + (box.bottom - r.bottom) - 8,
+    };
+    el.classList.add('is-dragging');
+  };
+  const onPointerMove = (e) => {
+    const d = drag.current, el = panel.current;
+    if (!d || !el) return;
+    if (narrow) {
+      d.ny = Math.max(0, e.clientY - d.y);
+      el.style.translate = `0 ${d.ny}px`;
+      return;
+    }
+    d.nx = Math.min(d.maxX, Math.max(d.minX, d.ox + e.clientX - d.x));
+    d.ny = Math.min(d.maxY, Math.max(d.minY, d.oy + e.clientY - d.y));
+    el.style.translate = `${d.nx}px ${d.ny}px`;
+  };
+  const end = () => {
+    const d = drag.current, el = panel.current;
+    drag.current = null;
+    if (!d || !el) return;
+    el.classList.remove('is-dragging');
+    if (narrow) {
+      if (d.ny > 90) onClose();
+      else el.style.translate = '';
+      return;
+    }
+    onOffset({ x: d.nx, y: d.ny });
+  };
+  const reset = () => { if (!narrow) onOffset({ x: 0, y: 0 }); };
+  return { panel, handlers: { onPointerDown, onPointerMove, onPointerUp: end, onPointerCancel: end, onDoubleClick: reset } };
+}
+
+export function Inspector({ o, state, dispatch, agent, ui, onClose, leaving, narrow, offset, onOffset }) {
+  const { panel, handlers } = useDragPanel({ narrow, offset, onOffset, onClose });
   // The draft follows the option until the user starts dragging; a new version from anywhere resets it.
   const [local, setLocal] = useState({ v: o.version, spec: o.spec });
   const draft = local.v === o.version ? local.spec : o.spec;
@@ -40,8 +89,15 @@ export function Inspector({ o, state, dispatch, agent, ui, onClose }) {
   const maxSpan = MATERIALS[o.material].maxSpan;
 
   return (
-    <aside className="inspector" aria-label={`Adjust option ${o.letter}`} data-inset="right">
-      <header className="insp-head">
+    <aside
+      ref={panel}
+      className={`inspector ${leaving ? 'is-leaving' : ''}`}
+      aria-label={`Adjust option ${o.letter}`}
+      data-inset={leaving ? undefined : narrow ? 'right' : 'auto'}
+      style={!narrow && (offset.x || offset.y) ? { translate: `${offset.x}px ${offset.y}px` } : undefined}
+    >
+      <header className="insp-head" title={narrow ? 'Drag down to close' : 'Drag to move. Double-click to put it back.'} {...handlers}>
+        {narrow && <span className="insp-grab" aria-hidden="true" />}
         <MaterialSwatch material={o.material} size={20} />
         <div className="insp-titles">
           <h2>Adjust option {o.letter}</h2>

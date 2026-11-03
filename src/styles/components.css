@@ -3,7 +3,7 @@
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
   border-radius: var(--r-md); border: 1px solid transparent;
   font-weight: 560; line-height: 1; white-space: nowrap;
-  transition: background var(--dur) var(--ease), border-color var(--dur), color var(--dur), opacity var(--dur);
+  transition: background var(--dur) var(--ease), border-color var(--dur), color var(--dur), opacity var(--dur), transform 140ms var(--ease);
 }
 .btn--md { min-height: 38px; padding: 0 16px; font-size: var(--fs-14); }
 .btn--sm { min-height: 32px; padding: 0 10px; font-size: 13px; }
@@ -20,12 +20,24 @@
   display: inline-grid; place-items: center; flex: none;
   width: 34px; height: 34px; border-radius: var(--r-md);
   color: var(--ink-2);
-  transition: background var(--dur) var(--ease), color var(--dur);
+  transition: background var(--dur) var(--ease), color var(--dur), transform 140ms var(--ease);
 }
+/* A small press on everything tappable, so a click is felt. */
+.btn:active:not(:disabled), .icon-btn:active:not(:disabled), .chip:active, .send:active:not(:disabled),
+.example:active, .tab-add:active:not(:disabled), .toggle:active, .study-run:active:not(.is-current) { transform: scale(0.96); }
 .icon-btn:hover:not(:disabled) { background: color-mix(in oklab, var(--ink) 7%, transparent); color: var(--ink); }
 .icon-btn.is-on { color: var(--accent); background: var(--accent-soft); }
 .icon-btn:disabled { opacity: 0.35; }
 .icon-btn--sm { width: 30px; height: 30px; }
+
+/* Theme toggle: the outgoing icon spins away and shrinks while the new one spins in and zooms up. */
+.theme-btn { display: inline-grid; overflow: hidden; }
+.theme-ico {
+  grid-area: 1 / 1;
+  transition: transform 560ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 260ms var(--ease);
+}
+.theme-btn[data-dark='false'] .theme-ico--sun { opacity: 0; transform: rotate(-150deg) scale(0.2); }
+.theme-btn[data-dark='true'] .theme-ico--moon { opacity: 0; transform: rotate(150deg) scale(0.2); }
 
 .linkish {
   color: var(--ink); font-weight: 560;
@@ -37,6 +49,7 @@
 
 /* ------------------------------------------------------------- segmented */
 .seg {
+  position: relative; isolation: isolate;
   display: inline-flex; padding: 2px; gap: 2px;
   border-radius: var(--r-md);
   background: color-mix(in oklab, var(--ink) 6%, transparent);
@@ -49,7 +62,14 @@
 .seg--md .seg-btn { min-height: 32px; padding: 0 12px; font-size: 13px; }
 .seg--sm .seg-btn { min-height: 26px; padding: 0 9px; font-size: 12.5px; }
 .seg-btn:hover:not(:disabled) { color: var(--ink); }
-.seg-btn[data-state='on'] { background: var(--raised); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / 0.1), 0 0 0 1px var(--rule-2); }
+.seg-btn[data-state='on'] { color: var(--ink); }
+/* One thumb slides under the selected item instead of each item lighting up on its own. */
+.seg-thumb {
+  position: absolute; z-index: -1; left: 0; top: 0; border-radius: 8px;
+  background: var(--raised); box-shadow: 0 1px 2px rgb(0 0 0 / 0.1), 0 0 0 1px var(--rule-2);
+  transition: transform 380ms cubic-bezier(0.32, 0.72, 0, 1), width 380ms cubic-bezier(0.32, 0.72, 0, 1), opacity 200ms;
+  pointer-events: none;
+}
 .seg-btn:disabled { opacity: 0.45; }
 .seg--fill { display: flex; width: 100%; }
 .seg--fill .seg-btn { flex: 1; }
@@ -58,7 +78,7 @@
 .chip {
   border: 1px solid var(--rule); background: var(--raised); color: var(--ink-2);
   border-radius: var(--r-pill); padding: 6px 12px; font-size: 13px; font-weight: 480; text-align: left;
-  transition: border-color var(--dur), color var(--dur);
+  transition: border-color var(--dur), color var(--dur), transform 140ms var(--ease);
 }
 .chip:hover { border-color: var(--ink-3); color: var(--ink); }
 .chip--sm { padding: 4px 10px; font-size: 12.5px; white-space: nowrap; }
@@ -144,6 +164,8 @@
   transform-origin: var(--radix-dropdown-menu-content-transform-origin);
 }
 @keyframes pop { from { opacity: 0; transform: scale(0.97) translateY(-4px); } }
+@keyframes pop-out { to { opacity: 0; transform: scale(0.97) translateY(-4px); } }
+.menu[data-state='closed'] { animation: pop-out 130ms ease-in forwards; }
 .menu-label { font-size: var(--fs-12); color: var(--ink-3); padding: 6px 8px 4px; font-stretch: 92%; }
 .menu-item {
   display: flex; align-items: center; gap: 9px; padding: 8px; border-radius: var(--r-sm);
@@ -166,6 +188,8 @@
 }
 .tip kbd { background: transparent; color: inherit; border-color: color-mix(in oklab, var(--paper) 30%, transparent); padding: 2px 4px; }
 @keyframes tip-in { from { opacity: 0; transform: translateY(2px); } }
+@keyframes tip-out { to { opacity: 0; transform: translateY(2px); } }
+.tip[data-state='closed'] { animation: tip-out 110ms ease-in forwards; }
 
 /* -------------------------------------------------------------- messages */
 .msg { display: flex; min-width: 0; }
@@ -203,6 +227,10 @@
 .ring-fill { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; transition: stroke-dasharray 400ms var(--ease); }
 .ring.is-running .ring-fill { stroke: var(--accent); }
 .ring-check { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+/* Steps open and close by animating the row height (0fr to 1fr), not by mounting. */
+.collapse { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 360ms var(--ease-out), opacity 220ms var(--ease); }
+.collapse.is-open { grid-template-rows: 1fr; opacity: 1; }
+.collapse-inner { min-height: 0; overflow: hidden; }
 .trace-steps { margin: 4px 0 2px 8px; padding-left: 19px; border-left: 1px solid var(--rule); display: grid; gap: 8px; }
 .step-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .step-label { font-weight: 520; font-size: 13px; }
@@ -215,7 +243,7 @@
   padding: 14px; box-shadow: var(--shadow-sm);
 }
 [data-look='studio'] .brief { background: color-mix(in oklab, var(--raised) 70%, transparent); }
-.brief--locked { gap: 3px; background: transparent; box-shadow: none; padding: 10px 12px; }
+.brief--locked { gap: 3px; background: transparent; box-shadow: none; padding: 10px 12px; animation: msg-in 320ms var(--ease-out); }
 [data-look='studio'] .brief--locked { background: transparent; }
 .brief--locked p { font-size: 13px; }
 .brief-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
@@ -254,6 +282,7 @@
 
 /* ------------------------------------------------------------- composer */
 .suggest { min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px; }
+.suggest .chip { animation: msg-in 300ms var(--ease-out) calc(var(--i, 0) * 50ms) backwards; }
 .composer {
   border: 1px solid var(--rule); background: var(--raised);
   border-radius: 18px; padding: 10px 10px 8px 14px;
@@ -286,7 +315,7 @@
   display: flex; align-items: center; gap: 12px; text-align: left;
   border: 1px solid var(--rule); background: color-mix(in oklab, var(--raised) 80%, transparent);
   border-radius: var(--r-md); padding: 10px 12px;
-  transition: border-color var(--dur), background var(--dur);
+  transition: border-color var(--dur), background var(--dur), transform 140ms var(--ease);
 }
 .example:hover { border-color: var(--ink-3); background: var(--raised); }
 .example-text { display: grid; min-width: 0; line-height: 1.35; }
@@ -305,7 +334,9 @@
   background: var(--raised); border: 1px solid var(--rule); border-radius: var(--r-lg);
   box-shadow: var(--shadow-lg); padding: 16px;
   animation: pop 180ms var(--ease-out);
+  transform-origin: var(--radix-popover-content-transform-origin);
 }
+.walk[data-state='closed'] { animation: pop-out 140ms ease-in forwards; }
 .walk-title { font-family: var(--font-display); font-weight: 620; font-stretch: 108%; font-size: var(--fs-16); }
 .walk-intro { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
 .walk-list { margin-top: 14px; display: grid; gap: 12px; counter-reset: walk; }
@@ -332,6 +363,8 @@
   font-weight: 500;
 }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 10px); } }
+@keyframes toast-out { to { opacity: 0; transform: translate(-50%, 8px) scale(0.98); } }
+.toast.is-leaving { animation: toast-out 200ms ease-in forwards; pointer-events: none; }
 .toast-btn {
   display: inline-flex; align-items: center; gap: 6px; margin-left: 6px;
   border-radius: var(--r-pill); padding: 6px 12px; font-weight: 600;

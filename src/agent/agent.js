@@ -42,9 +42,9 @@ export function createAgent(get, dispatch, hooks) {
       dispatch({ type: 'msg/patch', id, patch: (m) => ({ steps: m.steps.map((x, j) => (j === i ? { ...x, status: 'done', detail } : x)) }) });
     }
     const elapsed = (performance.now() - t0) / 1000;
-    dispatch({ type: 'msg/patch', id, patch: { state: 'done', elapsed, title: title.replace(/^Generating/, 'Generated').replace(/^Updating/, 'Updated').replace(/^Adding/, 'Added') } });
+    // Finish collapsed: opening the steps for a moment and shutting them again read as a flicker.
+    dispatch({ type: 'msg/patch', id, patch: { state: 'done', collapsed: true, elapsed, title: title.replace(/^Generating/, 'Generated').replace(/^Updating/, 'Updated').replace(/^Adding/, 'Added') } });
     await wait(260);
-    dispatch({ type: 'msg/patch', id, patch: { collapsed: true } });
     return id;
   }
 

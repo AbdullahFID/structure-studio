@@ -1,6 +1,6 @@
 import { DropdownMenu, Popover } from 'radix-ui';
 import { Check, Ellipsis, FilePlus2, FileText, ListChecks, Moon, Sun } from 'lucide-react';
-import { BrandMark, Button, IconButton, Segmented, Tip } from './ui.jsx';
+import { BrandMark, Button, Segmented, Tip } from './ui.jsx';
 
 const WALK = [
   { key: 'start', title: 'Enter building requirements', body: 'Type a brief, then approve the checkpoint.', prompt: 'Generate a 6 m x 4 m wooden shed', fresh: true, done: 'generated' },
@@ -78,7 +78,12 @@ export function TopBar({ state, dispatch, ui, look, setLook, dark, toggleDark })
 
         {working && <Button size="sm" icon={FileText} className="hide-narrow" disabled={!hasOptions} onClick={ui.openReport}>Report</Button>}
         {working && <Button size="sm" icon={FilePlus2} onClick={ui.reset}><span className="hide-sm">New study</span></Button>}
-        <IconButton icon={dark ? Sun : Moon} label={dark ? 'Light theme' : 'Dark theme'} onClick={toggleDark} size={17} />
+        <Tip label={dark ? 'Light theme' : 'Dark theme'}>
+          <button type="button" className="icon-btn theme-btn" data-dark={dark} aria-label={dark ? 'Light theme' : 'Dark theme'} onClick={toggleDark}>
+            <Sun className="theme-ico theme-ico--sun" size={17} strokeWidth={1.6} aria-hidden="true" />
+            <Moon className="theme-ico theme-ico--moon" size={17} strokeWidth={1.6} aria-hidden="true" />
+          </button>
+        </Tip>
 
         <DropdownMenu.Root>
           <Tip label="More">

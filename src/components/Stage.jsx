@@ -1,18 +1,23 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { computeOption } from '../engine/engine.js';
-import { StructureViewer, compareRects } from '../viewer/StructureViewer.js';
+import { StructureViewer } from '../viewer/StructureViewer.js';
 import { Inspector } from './Inspector.jsx';
+import { useLingering, useMedia, usePresence } from './hooks.js';
 import { readViewerTheme } from './theme.js';
 import { CompareOverlay, OptionTabs, TitleBlock, ViewTools } from './StageOverlays.jsx';
 
 const PREVIEW_SPEC = { type: 'workshop', length: 30, width: 12, storeyHeight: 4.5, floors: 1, roof: 'gable' };
+const NO_OFFSET = { x: 0, y: 0 };
 
 export function Stage({ state, dispatch, agent, ui, viewerRef, children }) {
   const hostRef = useRef(null);
   const areaRef = useRef(null);
-  const [size, setSize] = useState({ w: 0, h: 0 });
+  const [, setSize] = useState({ w: 0, h: 0 });
+  const [rects, setRects] = useState([]);
   const [failed, setFailed] = useState(false);
   const [view, setView] = useState('iso');
+  const [inspOffset, setInspOffset] = useState(NO_OFFSET);
+  const narrow = useMedia('(max-width: 860px)');
   const active = state.options.find((o) => o.id === state.activeId);
   const working = state.view === 'work';
 
@@ -29,6 +34,8 @@ export function Stage({ state, dispatch, agent, ui, viewerRef, children }) {
       v = new StructureViewer(hostRef.current, {
         onBuilt: (id) => { dispatch({ type: 'opt/stageAll', ids: [id], stage: 'ready' }); agent.resolveBuilt(id); },
         onInteract: () => dispatch({ type: 'walk', key: 'viewed' }),
+        // The viewer owns the compare layout; the overlays follow it.
+        onLayout: (r) => setRects(r),
       });
       viewerRef.current = v;
       v.setTheme(readViewerTheme());
@@ -67,6 +74,10 @@ export function Stage({ state, dispatch, agent, ui, viewerRef, children }) {
     viewerRef.current?.sync(state.options, { activeId: state.activeId, compareIds, display: state.display });
   }, [state.options, state.activeId, compareIds, state.display, viewerRef]);
 
+  // On phones the chat tab hides the sheet; stop drawing frames nobody sees.
+  const hidden = narrow && working && state.ui.panel === 'chat';
+  useEffect(() => { viewerRef.current?.setActive(!hidden); }, [hidden, viewerRef]);
+
   // Tell the viewer which parts of the canvas are covered, so the model is framed in the clear area.
   useLayoutEffect(() => {
     const v = viewerRef.current, stage = areaRef.current;
@@ -75,9 +86,12 @@ export function Stage({ state, dispatch, agent, ui, viewerRef, children }) {
     const ins = { top: 0, right: 0, bottom: 0, left: 0 };
     for (const el of document.querySelectorAll('[data-inset]')) {
       const r = el.getBoundingClientRect();
-      if (!r.width || !r.height || getComputedStyle(el).display === 'none') continue;
+      const cs = getComputedStyle(el);
+      if (!r.width || !r.height || cs.display === 'none' || cs.visibility === 'hidden') continue;
       if (r.right <= sr.left || r.left >= sr.right || r.bottom <= sr.top || r.top >= sr.bottom) continue;
       let side = el.dataset.inset;
+      // A panel that moves (Adjust can be dragged) counts on whichever side its centre is.
+      if (side === 'auto') side = r.left + r.width / 2 < sr.left + sr.width / 2 ? 'left' : 'right';
       // A side panel that spans the sheet (the phone bottom sheet) covers the bottom, not the side.
       if ((side === 'right' || side === 'left') && r.width > sr.width * 0.6) side = 'bottom';
       if (side === 'left') ins.left = Math.max(ins.left, r.right - sr.left + 8);
@@ -97,8 +111,13 @@ export function Stage({ state, dispatch, agent, ui, viewerRef, children }) {
     ui.bindView(onView);
   });
 
-  const rects = compareIds.length > 1 ? compareRects(size.w, size.h, compareIds.length) : [];
   const single = compareIds.length < 2;
+  const hasOptions = working && state.options.length > 0;
+  // Overlays stay mounted for a moment after they go, so they can animate out.
+  const titleP = usePresence(hasOptions && single && !!active, 220);
+  const inspP = usePresence(hasOptions && single && !!active && state.ui.inspector, 240);
+  const cmp = useLingering(hasOptions && rects.length > 1 ? rects : null, 240);
+  const status = useLingering(working && state.busy ? state.busyLabel || 'Working' : null, 200);
 
   return (
     <section className="stage" aria-label="3D model">
@@ -109,20 +128,24 @@ export function Stage({ state, dispatch, agent, ui, viewerRef, children }) {
             <p><strong>The 3D preview is off.</strong> This browser did not give the page a WebGL context. Turn on hardware acceleration and reload. The chat, estimates and report still work.</p>
           </div>
         )}
-        {working && state.options.length > 0 && (
-          <>
-            <div className="stage-top" data-inset="top">
-              <OptionTabs state={state} ui={ui} agent={agent} />
-              <ViewTools state={state} dispatch={dispatch} ui={ui} view={view} onView={onView} />
-            </div>
-            {single && active && <TitleBlock o={active} state={state} />}
-            {single && active && state.ui.inspector && (
-              <Inspector key={active.id} o={active} state={state} dispatch={dispatch} agent={agent} ui={ui} onClose={() => dispatch({ type: 'ui', patch: { inspector: false } })} />
-            )}
-            {!single && <CompareOverlay state={state} rects={rects} compareIds={compareIds} ui={ui} />}
-          </>
+        {hasOptions && (
+          <div className="stage-top" data-inset="top">
+            <OptionTabs state={state} ui={ui} agent={agent} />
+            <ViewTools state={state} dispatch={dispatch} ui={ui} view={view} onView={onView} />
+          </div>
         )}
-        {working && state.busy && <div className="stage-status" role="status"><span className="pen" aria-hidden="true" />{state.busyLabel}</div>}
+        {titleP.mounted && active && <TitleBlock o={active} state={state} leaving={titleP.leaving} />}
+        {inspP.mounted && active && (
+          <Inspector
+            key={active.id} o={active} state={state} dispatch={dispatch} agent={agent} ui={ui}
+            leaving={inspP.leaving} narrow={narrow} offset={inspOffset} onOffset={setInspOffset}
+            onClose={() => dispatch({ type: 'ui', patch: { inspector: false } })}
+          />
+        )}
+        {cmp.item && <CompareOverlay state={state} rects={cmp.item} ui={ui} leaving={cmp.leaving} />}
+        {status.item && (
+          <div className={`stage-status ${status.leaving ? 'is-leaving' : ''}`} role="status"><span className="pen" aria-hidden="true" />{status.item}</div>
+        )}
         {waiting && <p className="stage-empty">Your building appears here once the brief is clear.</p>}
         {pending && <p className="stage-empty stage-empty--ghost">Outline of the brief. Press Generate to frame it.</p>}
         {children}

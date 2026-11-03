@@ -237,9 +237,9 @@ arrow keys switch options. Shortcuts are listed in the More menu. They are ignor
 
 ## 7. Viewer (src/viewer/StructureViewer.js)
 
-API: `new StructureViewer(host, { onBuilt, onInteract })`, `sync(options, { activeId, compareIds, display })`,
+API: `new StructureViewer(host, { onBuilt, onInteract, onLayout })`, `sync(options, { activeId, compareIds, display })`,
 `setTheme({ look, dark, gridline, ink, ink3, gridMinor, gridMajor })`, `setInsets({ top, right, bottom, left })`,
-`setPreview(result, { animate })`, `frame(animate, 'iso'|'top'|'front'|'side')`, `thumbnail(id, { w, h })`, `dispose()`.
+`setPreview(result, { animate })`, `frame(animate, 'iso'|'top'|'front'|'side')`, `setActive(bool)`, `thumbnail(id, { w, h })`, `dispose()`.
 
 - Members are one `InstancedMesh` per role. **Ink edges** are an `InstancedBufferGeometry` of `EdgesGeometry` lines that
   reuses the mesh's `instanceMatrix` as an attribute, so outlines grow with the frame at no extra CPU cost.
@@ -254,7 +254,12 @@ API: `new StructureViewer(host, { onBuilt, onInteract })`, `sync(options, { acti
   (`setViewOffset`) so the model is framed in the clear area. A side panel wider than 60% of the sheet counts as bottom.
 - Gridline bubbles and dimension strings are CSS2D labels on the near sides, in mm with thin spaces ("6 000").
   Their entrance is a CSS transition on an inner span, delayed per label.
-- Rendering only happens when something changes. Compare uses scissor viewports with one shared camera.
+- Rendering only happens when something changes, and stops while the sheet is hidden (`setActive(false)`, the phone chat tab).
+  Compare uses scissor viewports with one shared camera, laid out by `compareRects(w, h, n, insets)` inside the clear area,
+  so the floating chat never hides a view. The viewer reports the rects through `onLayout`; the React overlays use them.
+- Shadow maps only redraw when the frame changes (`sun.shadow.autoUpdate = false`, `markShadow(e)`), not while orbiting.
+  `setProgress` only recomputes members inside their growth window. Touch screens get a 1.5 pixel ratio cap and 1024 shadow maps.
+- Switching the shown option or compare copies the last frame to `.vw-fade` and fades it out. Walls and gridlines fade or draw on.
 
 ---
 
@@ -278,7 +283,10 @@ API: `new StructureViewer(host, { onBuilt, onInteract })`, `sync(options, { acti
 - **Radii** 4, 7, 10, 14, 20 px by hierarchy. Shadows are soft and rare. No gradient text, no glow, no bento grid,
   no three-equal-cards hero, no emoji.
 - **Motion:** GSAP for the draw-on sequence and number count-ups, CSS for small transitions, View Transitions for
-  layout changes. Every animation respects `prefers-reduced-motion`.
+  layout changes. Nothing snaps: selections glide (`useGlide` moves one thumb, pill or underline), panels animate out
+  as well as in, and the theme spreads from its button. Every animation respects `prefers-reduced-motion`.
+- **Panels:** on desktop the chat edge is a splitter (drag, arrow keys, double-click resets; saved as `ss-convo`), and
+  Adjust can be dragged by its header. On phones Adjust is a bottom sheet you can swipe down to close.
 - **Copy:** sentence case, plain verbs, Canadian spelling, SI units. **No em dashes. No all-caps labels. No "→" in buttons.**
   A button names the action it performs, and its result uses the same word ("Generate", then "Generated").
 - Keep **"Demo mode"** (under the composer) and **"Synthetic data"** (title block) until a real agent and WSP data are connected.
@@ -315,6 +323,12 @@ API: `new StructureViewer(host, { onBuilt, onInteract })`, `sync(options, { acti
 10. **GSAP and CSS variables:** do not tween a custom property directly. Tween a plain number and call `setProperty`.
 11. **Slashed zeros:** see the type rule in section 8.
 12. **SwiftShader noise:** headless Chromium logs "GPU stall due to ReadPixels" on screenshots. The harness filters it.
+13. **CSS2D and hidden groups:** CSS2DRenderer only hides labels of an invisible group when it renders, so the viewer
+    renders the labels of the shown option every frame, even with gridlines off.
+14. **Exits:** overlays (Adjust, title block, compare, toast, busy pill) stay mounted briefly via `usePresence` /
+    `useLingering` in `hooks.js` so they can animate out. A leaving element drops its `data-inset`.
+15. **Theme reveal:** the theme switch is a view transition of the root only; `.vt-theme` removes the named groups
+    (topbar, convo, stage) for that one transition, and `setTheme` draws the canvas immediately so it is captured.
 
 ---
 

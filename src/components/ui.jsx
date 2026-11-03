@@ -1,5 +1,6 @@
-import { forwardRef, useId, useState } from 'react';
+import { forwardRef, useId, useRef, useState } from 'react';
 import { Slider, ToggleGroup, Tooltip } from 'radix-ui';
+import { useGlide } from './hooks.js';
 
 export function Tip({ label, children, side = 'bottom', kbd }) {
   if (!label) return children;
@@ -43,14 +44,19 @@ export const IconButton = forwardRef(function IconButton({ icon: Icon, label, kb
 });
 
 export function Segmented({ value, options, onChange, label, size = 'md', className = '' }) {
+  const root = useRef(null);
+  const thumb = useRef(null);
+  useGlide(root, thumb, '.seg-btn[data-state="on"]', value);
   return (
     <ToggleGroup.Root
+      ref={root}
       type="single"
       className={`seg seg--${size} ${className}`}
       value={value}
       aria-label={label}
       onValueChange={(v) => v && onChange(v)}
     >
+      <span className="seg-thumb" ref={thumb} aria-hidden="true" />
       {options.map((op) => (
         <ToggleGroup.Item key={op.value} value={op.value} className="seg-btn" disabled={op.disabled} aria-label={op.aria || undefined}>
           {op.icon}

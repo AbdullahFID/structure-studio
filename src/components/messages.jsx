@@ -59,18 +59,22 @@ function TraceLine({ m, ui }) {
         {!running && <ChevronDown className={`trace-chev ${open ? 'is-open' : ''}`} size={15} strokeWidth={1.75} aria-hidden="true" />}
       </button>
       {running && current && <code className="trace-tool">{current.tool}</code>}
-      {open && (
-        <ol className="trace-steps">
-          {m.steps.map((s, i) => (
-            <li key={i}>
-              <div className="step-row">
-                <span className="step-label">{s.label}</span>
-                <code className="step-tool">{s.tool}</code>
-              </div>
-              {s.detail && <p className="step-detail">{s.detail}</p>}
-            </li>
-          ))}
-        </ol>
+      {!running && (
+        <div className={`collapse ${open ? 'is-open' : ''}`} inert={!open}>
+          <div className="collapse-inner">
+            <ol className="trace-steps">
+              {m.steps.map((s, i) => (
+                <li key={i}>
+                  <div className="step-row">
+                    <span className="step-label">{s.label}</span>
+                    <code className="step-tool">{s.tool}</code>
+                  </div>
+                  {s.detail && <p className="step-detail">{s.detail}</p>}
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
       )}
     </div>
   );
